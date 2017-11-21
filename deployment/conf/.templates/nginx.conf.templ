@@ -74,10 +74,10 @@ DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128
 	proxy_request_buffering off;
 	server {
 		listen 80;
-		server_name appdev.kbase.us localhost;
+		server_name {{ default .Env.server_name "appdev.kbase.us" }} localhost;
 
 		# this resolver is the internal rancher resolver
-		resolver 169.254.169.250;
+		resolver {{ default .Env.dns_resolver "169.254.169.250" }};
 
 		# taken from next-www
 		client_max_body_size 100000m;
@@ -101,7 +101,7 @@ DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128
 		}
 
 		# Dynamic service rule.  This usees rancher DNS names to redirect
-		location ~ /dynserv/(.+) {
+		location ~ /dynserv/([^/\.\:]+)/(.*) {
 			proxy_pass http://$1:5000/;
 			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 			proxy_set_header X-Real-IP $remote_addr;
@@ -109,108 +109,15 @@ DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128
 			proxy_set_header X-Forwarded-Proto $scheme;
 		}
 
-		# Use production auth for now
-		location /services/authorization {
-			proxy_pass http://{{ default .Env.AuthEndpoint "auth2:8080" }}/;
-			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-			proxy_set_header X-Real-IP $remote_addr;
-			proxy_set_header Host $http_host;
-			proxy_set_header X-Forwarded-Proto $scheme;
-		}
-		location /services/shock-api {
-			proxy_pass http://{{ default .Env.ShockEndpoint "shock:7044" }}/;
-			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-			proxy_set_header X-Real-IP $remote_addr;
-			proxy_set_header Host $http_host;
-			proxy_set_header X-Forwarded-Proto $scheme;
-		}
-		location /services/awe-api {
-			proxy_pass http://{{ default .Env.AweEndpoint "awe:7017" }}/;
-			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-			proxy_set_header X-Real-IP $remote_addr;
-			proxy_set_header Host $http_host;
-			proxy_set_header X-Forwarded-Proto $scheme;
-		}
-		location /services/userandjobstate {
-			proxy_pass http://{{ default .Env.UJSEndpoint "ujs:7083" }}/;
-			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-			proxy_set_header X-Real-IP $remote_addr;
-			proxy_set_header Host $http_host;
-			proxy_set_header X-Forwarded-Proto $scheme;
-		}
-		location /services/ws {
-			proxy_pass http://{{ default .Env.WorkspaceEndpoint "ws:7058" }}/;
-			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-			proxy_set_header X-Real-IP $remote_addr;
-			proxy_set_header Host $http_host;
-			proxy_set_header X-Forwarded-Proto $scheme;
-		}
-		location /services/handlemngr {
-			proxy_pass http://{{ default .Env.HMgrEndpoint "handlemngr:9001" }}/;
-			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-			proxy_set_header X-Real-IP $remote_addr;
-			proxy_set_header Host $http_host;
-			proxy_set_header X-Forwarded-Proto $scheme;
-		}
-		location /services/handle_service {
-			proxy_pass http://{{ default .Env.HSvcEndpoint "handleservice:7109" }}/;
-			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-			proxy_set_header X-Real-IP $remote_addr;
-			proxy_set_header Host $http_host;
-			proxy_set_header X-Forwarded-Proto $scheme;
-		}
-		location /services/narrative_method_store {
-			proxy_pass http://{{ default .Env.NMSEndpoint "narrativemethodstore:7125" }};
-			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-			proxy_set_header X-Real-IP $remote_addr;
-			proxy_set_header Host $http_host;
-			proxy_set_header X-Forwarded-Proto $scheme;
-		}
-		location /services/catalog {
-			proxy_pass http://{{ default .Env.CatalogEndpoint "catalog:5000" }}/;
-			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-			proxy_set_header X-Real-IP $remote_addr;
-			proxy_set_header Host $http_host;
-			proxy_set_header X-Forwarded-Proto $scheme;
-		}
-		location /services/service_wizard {
-			proxy_pass http://{{ default .Env.ServiceWizardEndpoint "servicewizard:5000" }}/;
-			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-			proxy_set_header X-Real-IP $remote_addr;
-			proxy_set_header Host $http_host;
-			proxy_set_header X-Forwarded-Proto $scheme;
-		}
-		location /services/narrativejobproxy {
-			allow 172.17.0.0/16;
-			deny all;
-			proxy_pass http://{{ default .Env.NJSEndpoint "narrativejobproxy:7068" }}/;
-			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-			proxy_set_header X-Real-IP $remote_addr;
-			proxy_set_header Host $http_host;
-			proxy_set_header X-Forwarded-Proto $scheme;
-		}
-		location /services/njs_wrapper {
-			proxy_pass http://{{ default .Env.NJSWEndpoint "njswrapper:8200" }}/;
-			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-			proxy_set_header X-Real-IP $remote_addr;
-			proxy_set_header Host $http_host;
-			proxy_set_header X-Forwarded-Proto $scheme;
-		}
-		location /services/user_profile {
-			proxy_pass http://{{ default .Env.UserProfileEndpoint "userprofile:7126" }}/;
-			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-			proxy_set_header X-Real-IP $remote_addr;
-			proxy_set_header Host $http_host;
-			proxy_set_header X-Forwarded-Proto $scheme;
-		}
-		location /services/data_import_export {
-			proxy_pass http://{{ default .Env.DataIOEndpoint "dataimportexport:8200" }}/;
+		# Anything under services gets proxied to the servicename port 80
+		location ~ /services/([^/\.\:]+)/?(.*) {
+			proxy_pass http://$1:8080/$2;
 			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 			proxy_set_header X-Real-IP $remote_addr;
 			proxy_set_header Host $http_host;
 			proxy_set_header X-Forwarded-Proto $scheme;
 		}
 	}
-	# End of https appdev server block
+	# End of http server block
 
 }
