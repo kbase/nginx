@@ -1,6 +1,7 @@
 user nginx nginx;
 daemon off;
-error_log /dev/stdout info;
+error_log /dev/stdout {{ default .Env.loglevel "info" }};
+
 worker_processes auto;
 pid /run/nginx.pid;
 
@@ -44,10 +45,12 @@ DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128
 	# Logging Settings
 	##
 
-	access_log /var/log/nginx/access.log;
-	error_log /var/log/nginx/error.log;
-    access_log syslog:server=unix:/dev/log,facility=local7,tag=proda,severity=info combined;
-
+	access_log /var/log/nginx/access.log combined;
+	error_log /var/log/nginx/error.log {{ default .Env.loglevel "info" }};
+{{ if .Env.syslog_server }}
+    access_log syslog:server={{ .Env.syslog_server }},facility=local2,tag=ci,severity=info combined;
+    error_log syslog:server={{ .Env.syslog_server }},facility=local2,tag=ci,severity=info {{ default .Env.loglevel "info" }};
+{{ end }}
 	##
 	# Gzip Settings
 	##
