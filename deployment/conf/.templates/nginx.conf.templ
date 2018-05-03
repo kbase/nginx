@@ -102,7 +102,6 @@ DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128
 			allow all;
 
 		}
-
 		# Dynamic service rule.  This usees rancher DNS names to redirect
 		location ~ /dynserv/([^/\.\:]+)/(.*) {
 			proxy_pass http://$1:5000/;
@@ -120,6 +119,18 @@ DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128
 			proxy_set_header Host $http_host;
 			proxy_set_header X-Forwarded-Proto $scheme;
 		}
+
+		# Grandfathered entry for kbase-ui as root 
+		# KBase-ui can also be accessed via /services/kbase-ui which is
+		# more uniform
+		location ~ /?(.*) {
+			proxy_pass http://kbase-ui:8080/$1;
+			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+			proxy_set_header X-Real-IP $remote_addr;
+			proxy_set_header Host $http_host;
+			proxy_set_header X-Forwarded-Proto $scheme;
+		}
+
 	}
 	# End of http server block
 
