@@ -51,7 +51,11 @@ RUN mkdir /kb/src && cd /kb/src && \
     cp -a /kb/src/narrative/docker/* /kb/deployment/services/narrative/docker/ && \
     cp /kb/deployment/services/narrative/docker/proxy_mgr.lua /kb/deployment/services/narrative/docker/proxy_mgr2.lua && \
     rm -rf /etc/nginx && \
-    ln -s /usr/local/openresty/nginx/conf /etc/nginx
+    ln -s /usr/local/openresty/nginx/conf /etc/nginx && \
+    cd /etc/nginx && \
+    mkdir ssl /var/log/nginx && \
+    openssl req -x509 -newkey rsa:4096 -keyout ssl/key.pem -out ssl/cert.pem -days 365 -nodes \
+       -subj '/C=US/ST=California/L=Berkeley/O=Lawrence Berkeley National Lab/OU=KBase/CN=localhost'
 
 
 

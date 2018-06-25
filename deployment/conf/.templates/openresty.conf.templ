@@ -248,11 +248,8 @@ http {
 
         ssl on;
         # Letsencrypt generated certs
-        ssl_certificate /etc/letsencrypt/live/ci.kbase.us/fullchain.pem;
-        ssl_certificate_key /etc/letsencrypt/live/ci.kbase.us/privkey.pem;
-        # godaddy certs
-        #ssl_certificate /etc/nginx/ssl/server.chained.crt;
-        #ssl_certificate_key /etc/nginx/ssl/server.key;
+        ssl_certificate {{ default .Env.SSL_CERT_PATH "/etc/nginx/ssl/cert.pem" }};
+        ssl_certificate_key {{ default .Env.SSL_KEY_PATH "/etc/nginx/ssl/key.pem" }};
 
         ssl_session_timeout 5m;
         #ssl_protocols TLSv1;
@@ -587,10 +584,8 @@ http {
 
         ssl on;
         # letsencrypt certs
-        ssl_certificate /etc/letsencrypt/live/ci.kbase.us/fullchain.pem;
-        ssl_certificate_key /etc/letsencrypt/live/ci.kbase.us/privkey.pem;
-        #ssl_certificate /etc/nginx/ssl/server.chained.crt;
-        #ssl_certificate_key /etc/nginx/ssl/server.key;
+        ssl_certificate {{ default .Env.SSL_CERT_PATH "/etc/nginx/ssl/cert.pem" }};
+        ssl_certificate_key {{ default .Env.SSL_KEY_PATH "/etc/nginx/ssl/key.pem" }};
         ssl_session_timeout 5m;
 
         #ssl_protocols SSLv3 TLSv1;
