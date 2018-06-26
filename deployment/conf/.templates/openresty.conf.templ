@@ -1,4 +1,4 @@
-user www-data docker;
+user root;
 daemon off;
 error_log /dev/stdout {{ default .Env.loglevel "info" }};
 worker_processes auto;

@@ -10,7 +10,7 @@ COPY deployment/ /kb/deployment/
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
-        software-properties-common ca-certificates apt-transport-https curl
+        software-properties-common ca-certificates apt-transport-https curl net-tools
 
 
 # Split here just to manage the layer sizes
@@ -34,6 +34,7 @@ RUN apt-get install -y apt-transport-https software-properties-common && \
     apt-get update && \
     apt-get install -y docker-ce=18.03.0~ce-0~debian && \
     usermod -aG docker www-data && \
+    usermod -g root www-data && \
     mkdir -p /kb/deployment/services/narrative/docker
 
 # Bogus file to trigger a git clone and rebuild
