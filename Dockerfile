@@ -76,4 +76,6 @@ ENTRYPOINT [ "/kb/deployment/bin/dockerize" ]
 # be overidden by docker-compose at startup
 CMD [ "-template", "/kb/deployment/conf/.templates/openresty.conf.templ:/etc/nginx/nginx.conf", \
       "-env", "/kb/deployment/conf/localhost.ini", \
+      "-stdout", "/var/log/nginx/access.log", \
+      "-stdout", "/var/log/nginx/error.log", \
        "nginx" ]
