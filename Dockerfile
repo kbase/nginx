@@ -37,26 +37,31 @@ RUN apt-get install -y apt-transport-https software-properties-common && \
     usermod -g root www-data && \
     mkdir -p /kb/deployment/services/narrative/docker
 
-# Bogus file to trigger a git clone and rebuild
-ADD build-nginx.trigger /tmp/
 ADD githashes /tmp/githashes
-RUN ( echo "Git clone";date) > /tmp/git.log
 
-RUN mkdir /kb/src && cd /kb/src && \
+RUN  ( echo "Git clone";date) > /tmp/git.log && \
+    mkdir /kb/src && cd /kb/src && \
     git clone https://github.com/kbase/narrative -b $BRANCH && \
     grep -lr kbase.us/services /kb/| grep -v docs/ | \
     xargs sed -ri 's|https?://kbase.us/services|https://public.hostname.org:8443/services|g' && \
+    date > /tmp/build-nginx.trigger && \
     /tmp/githashes /kb/src/ > /tmp/tags && \
     rm -rf /kb/src/narrative/.git && \
     mkdir -p /kb/deployment/services/narrative/docker && \
     cp -a /kb/src/narrative/docker/* /kb/deployment/services/narrative/docker/ && \
+    rm -rf /kb/src && \
     cp /kb/deployment/services/narrative/docker/proxy_mgr.lua /kb/deployment/services/narrative/docker/proxy_mgr2.lua && \
     rm -rf /etc/nginx && \
     ln -s /usr/local/openresty/nginx/conf /etc/nginx && \
     cd /etc/nginx && \
     mkdir ssl /var/log/nginx && \
     openssl req -x509 -newkey rsa:4096 -keyout ssl/key.pem -out ssl/cert.pem -days 365 -nodes \
-       -subj '/C=US/ST=California/L=Berkeley/O=Lawrence Berkeley National Lab/OU=KBase/CN=localhost'
+       -subj '/C=US/ST=California/L=Berkeley/O=Lawrence Berkeley National Lab/OU=KBase/CN=localhost' && \
+    cd /tmp && \
+	wget -N https://github.com/kbase/dockerize/raw/master/dockerize-linux-amd64-v0.6.1.tar.gz && \
+	tar xvzf dockerize-linux-amd64-v0.6.1.tar.gz && \
+    rm dockerize-linux-amd64-v0.6.1.tar.gz && \
+	mv dockerize /kb/deployment/bin
 
 
 
