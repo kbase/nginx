@@ -3,7 +3,8 @@
 # Author: Steve Chan sychan@lbl.gov
 #
 
-NAME := "kbase/nginx"
+BRANCH := ${TRAVIS_BRANCH:-`git symbolic-ref --short HEAD`}
+NAME := "kbase/nginx:$(BRANCH)"
 
 all: docker_image
 
