@@ -198,6 +198,43 @@ DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128
 		}
 
 	}
-	# End of http server block
+	# End of main http server block
 
+    # Proxy	for the nginx remote api
+    server {
+        listen 127.0.0.1:65000;
+        ssl off;
+
+        auth_basic_user_file /etc/nginx/htpasswd;
+        location / {
+            proxy_pass http://unix:/var/run/docker.sock:/;
+            }
+    }
+
+    # Proxy for globus online - non-blocking lua code doesn't handle https, so
+    # we build an internal proxy to the Globus Nexus API endpoint
+    server {
+        listen 127.0.0.1:65001;
+
+        location / {
+            proxy_pass https://nexus.api.globusonline.org/;
+            proxy_set_header	Host	nexus.api.globusonline.org;
+            proxy_set_header	X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+    }
+
+    server {
+        listen 127.0.0.1:65002;
+        location ~ /(.*) {
+                resolver 8.8.8.8 valid=5s;
+                proxy_pass https://{{ default .Env.port65002 "ci.kbase.us/services/auth"}}/$1;
+                proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_intercept_errors on;
+                error_page 301 302 307 = @handle_redirect;
+        }
+        location @handle_redirect {
+                resolver 8.8.8.8 valid=5s;
+                set $saved_redirect_loc '$upstream_http_location';
+                proxy_pass $saved_redirect_loc;
+        }
 }
