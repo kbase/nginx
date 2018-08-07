@@ -44,19 +44,7 @@ RUN apt-get install -y apt-transport-https software-properties-common && \
 
 ADD githashes /tmp/githashes
 
-RUN  ( echo "Git clone";date) > /tmp/git.log && \
-    mkdir /kb/src && cd /kb/src && \
-    git clone https://github.com/kbase/narrative -b $BRANCH && \
-    grep -lr kbase.us/services /kb/| grep -v docs/ | \
-    xargs sed -ri 's|https?://kbase.us/services|https://public.hostname.org:8443/services|g' && \
-    date > /tmp/build-nginx.trigger && \
-    /tmp/githashes /kb/src/ > /tmp/tags && \
-    rm -rf /kb/src/narrative/.git && \
-    mkdir -p /kb/deployment/services/narrative/docker && \
-    cp -a /kb/src/narrative/docker/* /kb/deployment/services/narrative/docker/ && \
-    rm -rf /kb/src && \
-    cp /kb/deployment/services/narrative/docker/proxy_mgr.lua /kb/deployment/services/narrative/docker/proxy_mgr2.lua && \
-    rm -rf /etc/nginx && \
+RUN rm -rf /etc/nginx && \
     ln -s /usr/local/openresty/nginx/conf /etc/nginx && \
     cd /etc/nginx && \
     mkdir ssl /var/log/nginx && \
