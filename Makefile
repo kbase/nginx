@@ -3,14 +3,12 @@
 # Author: Steve Chan sychan@lbl.gov
 #
 
-NAME := "kbase/nginx"
+BRANCH := $(shell git symbolic-ref --short HEAD )
+NAME := "kbase/nginx:$(BRANCH)"
 
 all: docker_image
 
 docker_image:
-	wget -N https://github.com/kbase/dockerize/raw/master/dockerize-alpine-linux-amd64-v0.6.1.tar.gz
-	tar xvzf dockerize-alpine-linux-amd64-v0.6.1.tar.gz
-	cp dockerize deployment/bin
 	IMAGE_NAME=$(NAME) hooks/build
 
 push_image:
