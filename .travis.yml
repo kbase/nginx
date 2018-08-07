@@ -1,17 +1,1 @@
-language: bash
-sudo: required
-services:
-  - docker
-before_install:
-  - docker pull library/nginx:stable-alpine
-before_script:
-  - sudo apt-get update && sudo apt-get install git
-script:
-  - make
-after_success:
-  - make push_image
-env:
-  global:
-    - secure: "xQSV3TEyMqizm6hBcjyUhmsLijPoC/096Rtk1IQtI8tfqfRRlnEjJ5tEOLF9Eq/fQJdW0N5qauZnnbmRdpocZhZWSAKOSTvlN/yk4dpNqCKJB0LHSBraoI6sSRxJO5W9l7MVypnzGekVFi4SJMflXOjUdZf8kbhJ44cysYRLzj/YBH0PBU+acl4NRIY2QhSH/pEccei3/7C5exTtlQ+CYGXHzXbQ8bGK6zTISIXAp6wD+83hkJeoYhQ05XHe0cFkMTRfVA5mlL1Y9XNWOunaDmvyfogvpRZhgq+TIm/ZEU5lOO+0nEfegkdaqZqeBeEWpd7tHXTLA6gGMyFnqv7KpPchR7IUqxHeHRgLaIkOoQ6Q6PYolmXvuWwFA2tU0ITDbIpDHdvQvTM0Tv9tRf9kXD1XCwu3URj/AKDMYbLg+bUqNzmk9qXofJ91Qwr8rlT7RI5JnIaOppr8IXRrwxehKB1CnW2wGEt8whdYKOWinEZ8BBNC6GCmy/u+Gdt7VDhbCL3eiOvB1w9QZy1+9pYm58qriE7RdtyRzt3+CAhd7OShVYx/qtlFVqxWB14hlmB3f1hV7p71Bfl0jKtVNe0HOm9pPTmoc0jMnJzwwB9RVDwwg2Y6Xl/PQ3wX5/W1PzQpczvh0ZAQNlK8XySDYfowFwYYmWqA/XV3CPNAtByVL7k="
-    - secure: "3BX/glaoXWJwTvAd4ikALolUdzC17HG9siLPld1YVdkOk6PWG2MNHo5ctT+u3cP4VRsBuR3PvCk1KfNR3paOE88QZwanDyaqVNJA+2pycTg1lb+ocPd1IltBVKVWBuXKgnubdA3fPJLKvspiIXmDyee5whGeXef2lRR+T9wD6i+oXNfBEwDhGywE3rNpD/bwTzmi99WuJsaMDOBCShDd5/OgjFrz0g1tMoYbMpL2vVQiYdDqemiVj65kUqeyiriZy++ZnaPry/Hwd78+el9KRjk9NAdunNGx+cJzaNSrOaUYpHHTKTkSiaL8SgekMYB6VNjcmKiFYpOQ8+4EPzpM0viHOAeQzahKBdFZhXEyVV/lKrRjpd1rg/qY/P7xyRDjQI+UIwQyRAWCn3UxwHRuiNZ33zhmFlxwZVE00XGmvxyRlWas1wkJhpf9RM+eOLtvTJsc4G8OYCEsDAsVvGXFOMB+cNTERhJjClcjMiTOke2rvdO/6WARpxRuGuhvZBRft/e7/YzJqBkv1ZPhEl7UJL0ORsMI1KytpfF4pZ7GtfmDjkplmntToKN2Nob34jstSjfnW8mXf+N1aQNQeamuV6lg50pSKO2znBWVojKEb7wAGKQje0ocLBMxWDUHJ9yZzTa1cyy1FwdS4bckUeEPSRJMf2Kvs2keGPZxKz3ovBk="
-  
+# Build of this repo is handled in dockerhub  
