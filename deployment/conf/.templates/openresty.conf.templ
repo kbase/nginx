@@ -1,378 +1,122 @@
-user root;
+user nginx nginx;
 daemon off;
 error_log /dev/stdout {{ default .Env.loglevel "info" }};
+
 worker_processes auto;
 pid /run/nginx.pid;
 
 events {
-    worker_connections 768;
-    # multi_accept on;
+	worker_connections 768;
+	# multi_accept on;
 }
 
 http {
-    # Basic Settings
-    sendfile on;
-    tcp_nopush on;
-    tcp_nodelay on;
-    keepalive_timeout 65;
-    types_hash_max_size 2048;
-    # server_tokens off;
-    proxy_read_timeout 6000;
+	##
+	# Basic Settings
+	##
 
-    # server_names_hash_bucket_size 64;
-    # server_name_in_redirect off;
+	sendfile on;
+	tcp_nopush on;
+	tcp_nodelay on;
+	keepalive_timeout 65;
+	types_hash_max_size 2048;
+	# server_tokens off;
+	proxy_read_timeout 6000;
 
-    include /etc/nginx/mime.types;
-    default_type application/octet-stream;
+	# server_names_hash_bucket_size 64;
+	# server_name_in_redirect off;
 
-    # SSL Settings
-    ssl_protocols TLSv1 TLSv1.1 TLSv1.2; # Dropping SSLv3, ref: POODLE
-        ssl_ciphers 'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:ECDHE-RSA-DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA';
+	include /etc/nginx/mime.types;
+	default_type application/octet-stream;
 
-    ssl_prefer_server_ciphers on;
+	##
+	# SSL Settings
+	##
 
-    # Logging Settings
-    access_log /var/log/nginx/access.log;
-    error_log /var/log/nginx/error.log {{ default .Env.loglevel "info" }};
-    access_log syslog:server=10.58.0.54,facility=local2,tag=ci,severity=info combined;
+	ssl_protocols TLSv1 TLSv1.1 TLSv1.2; # Dropping SSLv3, ref: POODLE
+	ssl_ciphers 'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-
+AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:ECDHE-RSA-
+DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA
+';
 
-    # Gzip Settings
-    gzip on;
-    gzip_disable "msie6";
-
-    gzip_vary on;
-    gzip_proxied any;
-    gzip_comp_level 6;
-    gzip_buffers 16 8k;
-    gzip_http_version 1.1;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
-
-    # Virtual Host Configs
-    client_max_body_size 100000m;
-    client_body_temp_path  /opt/nginxtmp 1 2;
-    proxy_max_temp_file_size 0;
-    proxy_headers_hash_max_size 4096;
-    proxy_headers_hash_bucket_size 4096;
-    # added kkeller 30sep2015 for kbase-2777
-    proxy_request_buffering off;
-
-    # added kkeller 27jan2017 for "kernel starting" issue
-    # see: https://github.com/jupyter/docker-stacks/wiki/Docker-Recipes#running-behind-a-nginx-proxy
-    # http://nginx.org/en/docs/http/websocket.html
-
-    map $http_upgrade $connection_upgrade {
-        default upgrade;
-        ''      close;
-    }
-
-    lua_shared_dict session_map 1m;
-    lua_shared_dict docker_map 2m;
-    lua_shared_dict token_cache 2m;
-    lua_shared_dict proxy_mgr 100k;
-    lua_shared_dict lock_map 2m;
-
-    # load lua files
-    lua_package_path "/kb/deployment/services/narrative/docker/?;/kb/deployment/services/narrative/docker/?.lua;;";
-
-    # initilize proxymgr - set shared dictionaries
-    init_by_lua '
-        json = require("json")
-        proxymgr = require("proxy_mgr")
-        proxymgr:initialize{
-            lock_name = "lock_map",
-            session_map = ngx.shared.session_map,
-            docker_map = ngx.shared.docker_map,
-            token_cache = ngx.shared.token_cache,
-            proxy_mgr = ngx.shared.proxy_mgr
-        }
-    ';
-
-    # start worker processes
-    init_worker_by_lua '
-        proxymgr:check_marker()
-        proxymgr:check_provisioner(0)
-    ';
-
-    geo $kb_trusted {
-        default 0;
-        140.221.43.0/24 1;
-        140.221.64.0/22 1;
-        128.3.56.128/25 1;
-        128.55.224.0/24 1;
-    }
-
-    server {
-        root /kb/deployment;
-        index home.html home.shtml;
-
-        # Make site accessible from http://localhost/
-        server_name {{ default .Env.server_name "appdev.kbase.us" }} localhost;
-
-        # Setup a DNS resolver
-        resolver 8.8.8.8;
-
-        location / {
-            root /kb/deployment/services/kbase-ui;
-            index index.html;
-            #ssi on;
-            ssi_silent_errors off;
-            allow all;
-
-            #auth_basic	"KBase Dev Website";
-            #auth_basic_user_file htpasswd;
-            return	301 https://ci.kbase.us$request_uri;
-        }
-        # add cdn location
-        location /cdn {
-            alias /kb/deployment/services/cdnjs/;
-            autoindex on;
-            autoindex_format json;
-            types {
-                application/javascript js;
-                text/plain map;
-                text/css css;
-            }
-        }
-
-  
-        # This is for letsencrypt
-        location /.well-known {
-            root /certs/;
-            allow all;
-        }
-
-        # Dynamic proxy manager
-        location /proxy_map {
-            default_type 'application/json';
-            allow 127.0.0.1;
-            allow 172.17.0.0/16;
-            deny all;
-            set $uri_base '/proxy_map';
-            content_by_lua 'proxymgr:set_proxy()';
-        }
-
-        location /narrative_shutdown {
-            allow 127.0.0.1;
-            allow 172.17.0.0/16;
-            default_type 'application/json';
-            set $uri_base '/proxy_map';
-            content_by_lua 'proxymgr:narrative_shutdown()';
-        }
-
-        location /narrative/ {
-            default_type 'text/plain';
-            error_page 401 /index.html;
-
-            set $target '';
-            access_by_lua '
-                proxymgr:use_proxy()
-            ';
-            proxy_set_header X-Forwarded-Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-Server $host;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header Host $http_host;
-            proxy_set_header X-NginX-Proxy true;
-            proxy_pass http://$target;
-            proxy_redirect off;
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "upgrade";
-            proxy_read_timeout 86400;
-        }
-    }
-
-    # Proxy	for the nginx remote api
-    server {
-        listen 127.0.0.1:65000;
-        ssl off;
-
-        auth_basic_user_file /etc/nginx/htpasswd;
-        location / {
-            proxy_pass http://unix:/var/run/docker.sock:/;
-            }
-    }
-
-    # Proxy for globus online - non-blocking lua code doesn't handle https, so
-    # we build an internal proxy to the Globus Nexus API endpoint
-    server {
-        listen 127.0.0.1:65001;
-
-        location / {
-            proxy_pass https://nexus.api.globusonline.org/;
-            proxy_set_header	Host	nexus.api.globusonline.org;
-            proxy_set_header	X-Forwarded-For $proxy_add_x_forwarded_for;
-        }
-    }
-
-    server {
-        listen 127.0.0.1:65002;
-        location ~ /(.*) {
-                resolver 8.8.8.8 valid=5s;
-                proxy_pass https://{{ default .Env.port65002 "ci.kbase.us/services/auth"}}/$1;
-                proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
-                proxy_intercept_errors on;
-                error_page 301 302 307 = @handle_redirect;
-        }
-        location @handle_redirect {
-                resolver 8.8.8.8 valid=5s;
-                set $saved_redirect_loc '$upstream_http_location';
-                proxy_pass $saved_redirect_loc;
-        }
-}
+	ssl_prefer_server_ciphers on;
+	ssl_certificate /kb/deployment/conf/localhost.crt;
+	ssl_certificate_key /kb/deployment/conf/localhost.key;
 
 
-# Main HTTPS server.  This handles services and the narrative plus other stuff
-#
-#XXX the rate below is 1r/m because that's the slowest that this version of nginx will allow
-#there is a patch to support tth which would allow one request every 16 minutes 
-# may no longer need this
-#limit_req_zone $1 zone=shockapi:10m rate=1r/m;
+	##
+	# Logging Settings
+	##
 
-    server {
-        listen 443;
-        server_name {{ default .Env.server_name "appdev.kbase.us" }} localhost;
+	access_log /var/log/nginx/access.log combined;
+	error_log /var/log/nginx/error.log {{ default .Env.loglevel "info" }};
+{{ if .Env.syslog_server }}
+    access_log syslog:server={{ .Env.syslog_server }},facility=local2,tag=ci,severity=info combined;
+    error_log syslog:server={{ .Env.syslog_server }},facility=local2,tag=ci,severity=info {{ default .Env.loglevel "info" }};
+{{ end }}
+	##
+	# Gzip Settings
+	##
 
-        # this resolver is the internal rancher resolver
-        # see https://github.com/rancher/rancher/issues/7691#issuecomment-277635645
-        resolver 169.254.169.250 valid=5s ipv6=off;
+	gzip on;
+	gzip_disable "msie6";
 
-        # taken from next-www
-        client_max_body_size 100000m;
-        client_body_temp_path /tmp 1 2;
-        proxy_max_temp_file_size 0;
-        proxy_headers_hash_max_size 4096;
-        proxy_headers_hash_bucket_size 4096;
-        # added kkeller 30sep2015 for kbase-2777
-        proxy_request_buffering off;
+	gzip_vary on;
+	gzip_proxied any;
+	gzip_comp_level 6;
+	gzip_buffers 16 8k;
+	gzip_http_version 1.1;
+	gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
 
-        ssl on;
-        # Letsencrypt generated certs
-        ssl_certificate {{ default .Env.SSL_CERT_PATH "/etc/nginx/ssl/cert.pem" }};
-        ssl_certificate_key {{ default .Env.SSL_KEY_PATH "/etc/nginx/ssl/key.pem" }};
+	##
+	# Virtual Host Configs
+	##
+	client_max_body_size 100000m;
+	client_body_temp_path  /tmp 1 2;
+	proxy_max_temp_file_size 0;
+	proxy_headers_hash_max_size 4096;
+	proxy_headers_hash_bucket_size 4096;
+	# added kkeller 30sep2015 for kbase-2777
+	proxy_request_buffering off;
 
-        ssl_session_timeout 5m;
-        #ssl_protocols TLSv1;
-        #ssl_ciphers ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv3:+EXP;
-        ssl_prefer_server_ciphers on;
+	server {
+		listen 80;
+		listen 443 ssl;
+		server_name {{ default .Env.server_name "appdev.kbase.us" }} localhost;
 
-        root /kb/deployment;
-        index home.html home.shtml;
+		# this resolver is the internal rancher resolver
+		resolver {{ default .Env.dns_resolver "169.254.169.250" }};
 
-        location /bad_request {
-               internal;
-               content_by_lua '
-               ngx.log(ngx.ERR, "badrequest")
-               ';
+		# taken from next-www
+		client_max_body_size 100000m;
+		client_body_temp_path /tmp 1 2;
+		proxy_max_temp_file_size 0;
+		proxy_headers_hash_max_size 4096;
+		proxy_headers_hash_bucket_size 4096;
+		# added kkeller 30sep2015 for kbase-2777
+		proxy_request_buffering off;
 
-               return 404;
-        }
+		root /kb/deployment;
+		index home.html home.shtml;
 
-        location / {
-            proxy_pass http://{{ default .Env.kbase_ui "kbase_ui:8080" }}/;
-            proxy_cookie_path /login /services/auth/login;
-            proxy_cookie_path /link /services/auth/link;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Real-IP $remote_addr;
-            # proxy_set_header Host $http_host;
-            # proxy_set_header X-Forwarded-Proto $scheme;
-            add_header 'Access-Control-Allow-Origin' '*';
-            add_header 'Access-Control-Allow-Headers' 'Origin, X-Requested-With, Authorization, Content-Type, Accept';
-        }
+		# Anything under services gets proxied to the servicename port 80
+		location /narrative/(.*) {
+			proxy_pass http://narrative:8080/$1;
+			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+			proxy_set_header X-Real-IP $remote_addr;
+			proxy_set_header Host $http_host;
+			proxy_set_header X-Forwarded-Proto $scheme;
+		}
 
-        # add cdn location
-        location /cdn {
-            alias /kb/deployment/services/cdnjs/;
-            autoindex on;
-            autoindex_format json;
-            types {
-                application/javascript js;
-                text/plain map;
-                text/css css;
-            }
-        }
+		# Dynamic service rule.  This usees rancher DNS names to redirect
+		location ~ /dynserv/([^/\.\:]+)/(.*) {
+			proxy_pass http://$1:5000/;
+			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+			proxy_set_header X-Real-IP $remote_addr;
+			proxy_set_header Host $http_host;
+			proxy_set_header X-Forwarded-Proto $scheme;
+		}
 
-        ### auth2
-        location /services/auth/ {
-            proxy_pass http://{{ default .Env.auth "auth:8080" }}/;
-            proxy_cookie_path /login /services/auth/login;
-            proxy_cookie_path /link /services/auth/link;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Real-IP $remote_addr;
-            # proxy_set_header Host $http_host;
-            # proxy_set_header X-Forwarded-Proto $scheme;
-            add_header 'Access-Control-Allow-Origin' '*';
-            add_header 'Access-Control-Allow-Headers' 'Origin, X-Requested-With, Authorization, Content-Type, Accept';
-            }
-
-        # Dynamic service rule.  This uses rancher DNS names to redirect
-        # match urls with a / in it
-        location ~ /dynserv/([^/]+)/(.*) {
-            # try to address TASK-920 (spaces in URLs, for serving filenames generated
-            # by tools which use spaces)
-            # setting explicit vars seems to tell nginx not to mess with the uri
-            set $dynservhost $1;
-            set $dynservurl $2;
-                proxy_pass http://$dynservhost:5000/$dynservurl;
-                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                proxy_set_header X-Real-IP $remote_addr;
-                proxy_set_header Host $http_host;
-                proxy_set_header X-Forwarded-Proto $scheme;
-            }
-            # match urls with no slash (to make it behave just like /)
-            location ~ /dynserv/([^/]+)$ {
-                proxy_pass http://$1:5000/;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Real-IP $remote_addr;
-                proxy_set_header Host $http_host;
-                proxy_set_header X-Forwarded-Proto $scheme;
-            }
-
-        # Dynamic proxy manager
-        location /proxy_map {
-            default_type 'application/json';
-            allow 127.0.0.1;
-            allow 172.17.0.0/16;
-            deny all;
-
-            set $uri_base '/proxy_map';
-            content_by_lua 'proxymgr:set_proxy()';
-
-        }
-        # Shutdown utility
-        location /narrative_shutdown {
-            default_type 'application/json';
-            allow 127.0.0.1;
-            allow 172.17.0.0/16;
-
-            set $uri_base '/narrative_shutdown';
-            content_by_lua 'proxymgr:narrative_shutdown()';
-
-        }
-
-        # Narrative redirect rule
-        location /narrative/ {
-            default_type 'text/plain';
-            error_page 401 /index.html;
-            set $target '';
-
-            access_by_lua '
-                    proxymgr:use_proxy()
-            ';
-            proxy_set_header X-Forwarded-Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-Server $host;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header Host $http_host;
-            proxy_set_header X-NginX-Proxy true;
-            proxy_pass http://$target;
-            proxy_redirect off;
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "upgrade";
-            proxy_read_timeout 86400;
-        }
-        
 		# Anything under services gets proxied to the servicename port 80
 		location ~ /services/([^/\.\:]+)/?(.*) {
 			proxy_pass http://$1:8080/$2;
@@ -393,80 +137,7 @@ http {
 			proxy_set_header X-Forwarded-Proto $scheme;
 		}
 
-    }
-    # End of https ci server block
+	}
+	# End of http server block
 
-#
-# dockerhub-ci entries
-# 
-    server {
-        listen 80; ## listen for ipv4; this line is default and implied
-    
-        root /usr/share/nginx/www;
-        index index.html index.htm;
-    
-        server_name {{ default .Env.dockerhub_server_name "dockerhub-ci.kbase.us" }};
-    
-        location / {
-            limit_except GET HEAD OPTIONS {
-                # public berkeley ips
-                allow 128.3.56.0/24;
-                # private berkeley ips
-                allow 10.58.0.0/20;
-                allow 192.168.1.0/24;
-                # docker internal ips
-                allow 172.17.0.0/16;
-                # rancher internal ips
-                                allow 10.42.0.0/16;
-                deny all;
-            }
-            proxy_pass http://{{ default .Env.dockerhub_proxy_pass "ci-dockerregistry:5000" }}/;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header Host $http_host;
-            proxy_set_header X-Forwarded-Proto $scheme;
-        }
-        # This is for letsencrypt
-        location /.well-known {
-            root /certs/;
-            allow all;
-        }
-
-    
-    }
-    
-    server {
-        listen 443 ssl;
-        server_name {{ default .Env.dockerhub_server_name "dockerhub-ci.kbase.us" }};
-
-        ssl on;
-        # letsencrypt certs
-        ssl_certificate {{ default .Env.SSL_CERT_PATH "/etc/nginx/ssl/cert.pem" }};
-        ssl_certificate_key {{ default .Env.SSL_KEY_PATH "/etc/nginx/ssl/key.pem" }};
-        ssl_session_timeout 5m;
-
-        #ssl_protocols SSLv3 TLSv1;
-        #ssl_ciphers ALL:!ADH:!EXPORT:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv3:+EXP;
-        #ssl_prefer_server_ciphers on;
-
-        location / {
-            limit_except GET HEAD OPTIONS {
-                # public berkeley ips
-                allow 128.3.56.0/24;
-                # private berkeley ips
-                allow 10.58.0.0/20;
-                allow 192.168.1.0/24;
-                # docker internal ips
-                allow 172.17.0.0/16;
-                # rancher internal ips
-                                allow 10.42.0.0/16;
-                deny all;
-            }
-            proxy_pass http://{{ default .Env.dockerhub_proxy_pass "ci-dockerregistry:5000" }}/;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header Host $http_host;
-            proxy_set_header X-Forwarded-Proto $scheme;
-        }
-    }
 }
