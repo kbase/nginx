@@ -142,6 +142,15 @@ DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128
             content_by_lua 'proxymgr:narrative_shutdown()';
         }
 
+        location /bad_request {
+               internal;
+               content_by_lua '
+               ngx.log(ngx.ERR, "badrequest")
+               ';
+
+               return 404;
+        }
+
 		root /kb/deployment;
 		index home.html home.shtml;
 
