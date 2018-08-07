@@ -1,9 +1,12 @@
+ARG BRANCH=develop
+FROM kbase/narrative:${BRANCH} as narrative
+
 FROM openresty/openresty:jessie
 
 # These ARGs values are passed in via the docker build command
 ARG BUILD_DATE
 ARG VCS_REF
-ARG BRANCH=develop
+ARG BRANCH
 
 COPY deployment/ /kb/deployment/
 
@@ -63,6 +66,7 @@ RUN  ( echo "Git clone";date) > /tmp/git.log && \
     rm dockerize-linux-amd64-v0.6.1.tar.gz && \
 	mv dockerize /kb/deployment/bin
 
+COPY --from=narrative /kb/dev_container/narrative/docker /kb/deployment/services/narrative/docker/
 
 
 # The BUILD_DATE value seem to bust the docker cache when the timestamp changes, move to
