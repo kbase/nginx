@@ -1,5 +1,5 @@
-ARG BRANCH=develop
-FROM kbase/narrative:${BRANCH} as narrative
+ARG STAGE1TAG=develop
+FROM kbase/narrative:${STAGE1TAG} as narrative
 
 FROM openresty/openresty:jessie
 
