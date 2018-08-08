@@ -1,7 +1,5 @@
-# For the mini branch, there isn't a corresponding narrative image to pull lua code
-# from, so for now pin it to the kbase/narrative:latest image
-# ARG BRANCH=develop
-FROM kbase/narrative:latest as narrative
+ARG STAGE1TAG=develop
+FROM kbase/narrative:${STAGE1TAG} as narrative
 
 FROM openresty/openresty:jessie
 
