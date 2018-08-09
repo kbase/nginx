@@ -1,0 +1,46 @@
+lua_shared_dict session_map 1m;
+lua_shared_dict docker_map 2m;
+lua_shared_dict token_cache 2m;
+lua_shared_dict proxy_mgr 100k;
+lua_shared_dict lock_map 2m;
+
+lua_shared_dict session_map_legacy 1m;
+lua_shared_dict docker_map_legacy 2m;
+lua_shared_dict token_cache_legacy 2m;
+lua_shared_dict proxy_mgr_legacy 100k;
+lua_shared_dict lock_map_legacy 2m;
+
+# load lua files
+lua_package_path "/kb/deployment/services/narrative/docker/?;/kb/deployment/services/narrative/docker/?.lua;;";
+
+# initilize proxymgr - set shared dictionaries
+init_by_lua '
+	json = require("json")
+	proxymgr = require("proxy_mgr")
+	proxymgr:initialize{
+		lock_name = "lock_map",
+		session_map = ngx.shared.session_map,
+		docker_map = ngx.shared.docker_map,
+		token_cache = ngx.shared.token_cache,
+		proxy_mgr = ngx.shared.proxy_mgr,
+		provision_count = 20
+	}
+	proxymgr2 = require("proxy_mgr2")
+	proxymgr2:initialize{
+		lock_name = "lock_map_legacy",
+		session_map = ngx.shared.session_map_legacy,
+		docker_map = ngx.shared.docker_map_legacy,
+		token_cache = ngx.shared.token_cache_legacy,
+		proxy_mgr = ngx.shared.proxy_mgr_legacy,
+		provision_count = 10,
+		image = "kbase/narrative:legacy"
+	}
+';
+
+# start worker processes
+init_worker_by_lua '
+	proxymgr:check_marker()
+	proxymgr:check_provisioner(0)
+	proxymgr2:check_marker()
+	proxymgr2:check_provisioner(0)
+';
