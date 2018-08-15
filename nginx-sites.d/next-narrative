@@ -173,45 +173,6 @@ server {
         return 404;
     }
 
-    location ^~ /solrauth {
-            default_type text/html;
-            content_by_lua '
-            local session_id, err = proxymgr:get_session()
-            local hdrs = ngx.req.get_headers()
-            local reqType = ngx.var.request_method
-            local token = {}
-            ngx.log(ngx.ERR, string.format("id = %s",session_id))
-            local capture = "/search" .. string.sub(ngx.var.uri, 10)
-            if ngx.var.QUERY_STRING ~= nil then
-                capture = capture .. "?" .. ngx.var.QUERY_STRING
-            end
-            if reqType == "POST" or reqType == "DELETE"
-            then
-                    if (session_id == nil or (session_id ~= "rw2" and session_id ~= "dan")) then
-                            ngx.log(ngx.ERR, "no auth found")
-                            res = ngx.location.capture("/bad_request")
-                    else
-                            ngx.log(ngx.ERR, "auth found")
-                            ngx.req.read_body()
-                            if reqType == "POST" then
-                                res = ngx.location.capture(capture, {body=ngx.var.request_body, method = ngx.HTTP_POST})
-                            else
-                                res = ngx.location.capture(capture, {body=ngx.var.request_body, method = ngx.HTTP_DELETE})
-                            end
-                    end
-            else
-                    ngx.log(ngx.ERR, "get request")
-                    local capture = "/search" .. string.sub(ngx.var.uri, 10)
-                    if ngx.var.QUERY_STRING ~= nil then
-                        capture = capture .. "?" .. ngx.var.QUERY_STRING
-                    end
-                    ngx.log(ngx.ERR, capture)
-                    res = ngx.location.capture(capture)
-            end
-            ngx.say(res.body)
-            ';
-    }
-
     location ^~ /data_source_config.json {
             proxy_pass http://narrative-version:80/data_source_config.json;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
