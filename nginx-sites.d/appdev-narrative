@@ -1,0 +1,436 @@
+
+server {
+    root /kb/deployment;
+    index home.html home.shtml;
+
+    # Make site accessible from http://localhost/
+    server_name appdev.kbase.us;
+
+    # Setup a DNS resolver
+    resolver 8.8.8.8;
+
+    location / {
+        root /kb/deployment/services/kbase-ui;
+        index index.html;
+        #ssi on;
+        ssi_silent_errors off;
+        allow all;
+
+        #auth_basic	"KBase Dev Website";
+        #auth_basic_user_file htpasswd;
+        return	301 https://appdev.kbase.us$request_uri;
+    }
+
+    # This is for letsencrypt
+    location /.well-known {
+            root /certs/;
+            allow all;
+    }
+
+    # Dynamic proxy manager
+    location /proxy_map {
+        default_type 'application/json';
+        allow 127.0.0.1;
+        allow 172.17.0.0/16;
+        deny all;
+
+        set $uri_base '/proxy_map';
+        content_by_lua 'proxymgr:set_proxy()';
+    }
+
+    location /narrative_shutdown {
+        allow 127.0.0.1;
+        default_type 'application/json';
+
+        set $uri_base '/proxy_map';
+        content_by_lua 'proxymgr:narrative_shutdown()';
+
+    }
+
+    location /narrative/ {
+
+        default_type 'text/plain';
+        error_page 401 /index.html;
+
+        set $target '';
+
+        access_by_lua '
+            proxymgr:use_proxy()
+        ';
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Server $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-NginX-Proxy true;
+        proxy_pass http://$target;
+        proxy_redirect off;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 86400;
+    }
+}
+
+# Proxy	for the nginx remote api
+server {
+    listen 127.0.0.1:65000;
+    ssl off;
+
+    auth_basic_user_file /etc/nginx/htpasswd;
+    location / {
+        proxy_pass http://unix:/var/run/docker.sock:/;
+        }
+}
+
+# Proxy for globus online - non-blocking lua code doesn't handle https, so
+# we build an internal proxy to the Globus Nexus API endpoint
+server {
+    listen 127.0.0.1:65001;
+
+    location / {
+        proxy_pass https://nexus.api.globusonline.org/;
+        proxy_set_header	Host	nexus.api.globusonline.org;
+        proxy_set_header	X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+
+# Proxy for auth2, see note above
+server {
+        listen 127.0.0.1:65002;
+        location ~ /(.*) {
+                resolver 8.8.8.8 valid=5s;
+                set $auth "kbase.us/services/auth";
+                proxy_pass https://$auth/$1;
+                proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_intercept_errors on;
+                error_page 301 302 307 = @handle_redirect;
+        }
+        location @handle_redirect {
+                resolver 8.8.8.8 valid=5s;
+                set $saved_redirect_loc '$upstream_http_location';
+                proxy_pass $saved_redirect_loc;
+        }
+}
+
+# Main HTTPS server.  This handles services and the narrative plus other stuff
+#
+server {
+    listen 443;
+    server_name appdev.kbase.us localhost;
+
+    # this resolver is the internal rancher resolver
+    resolver 169.254.169.250 valid=5s ipv6=off;
+
+    # taken from next-www
+    client_max_body_size 100000m;
+    client_body_temp_path /tmp 1 2;
+    proxy_max_temp_file_size 0;
+    proxy_headers_hash_max_size 4096;
+    proxy_headers_hash_bucket_size 4096;
+    # added kkeller 30sep2015 for kbase-2777
+    proxy_request_buffering off;
+
+    ssl on;
+    # Letsencrypt generated certs
+    ssl_certificate /etc/letsencrypt/live/appdev.kbase.us/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/appdev.kbase.us/privkey.pem;
+
+    ssl_session_timeout 5m;
+    #ssl_protocols TLSv1;
+    #ssl_ciphers ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv3:+EXP;
+    ssl_prefer_server_ciphers on;
+
+    root /kb/deployment;
+    index home.html home.shtml;
+
+    location ~ /dynserv/([^/]+)/(.*) {
+        set $dynservhost $1;
+        set $dynservurl $2;
+        proxy_pass http://$dynservhost:5000/$dynservurl;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # match urls with no slash (to make it behave just like /)
+    location ~ /dynserv/([^/]+)$ {
+        proxy_pass http://$1:5000/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Dynamic proxy manager
+    location ^~ /proxy_map {
+        default_type 'application/json';
+        allow 127.0.0.1;
+        allow 172.17.0.0/16;
+        deny all;
+
+        set $uri_base '/proxy_map';
+        content_by_lua 'proxymgr:set_proxy()';
+    }
+
+    # Shutdown utility
+    location ^~ /narrative_shutdown {
+        default_type 'application/json';
+        allow 127.0.0.1;
+
+        set $uri_base '/narrative_shutdown';
+        content_by_lua 'proxymgr:narrative_shutdown()';
+    }
+
+    # Narrative redirect rule
+    location ^~ /narrative/ {
+        default_type 'text/plain';
+        error_page 401 /index.html;
+        set $target '';
+
+        access_by_lua '
+                proxymgr:use_proxy()
+        ';
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Server $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-NginX-Proxy true;
+        proxy_pass http://$target;
+        proxy_redirect off;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 86400;
+    }
+
+    location ^~ /narrativelegacy/ {
+        default_type 'text/plain';
+        error_page 401 /index.html;
+        set $target '';
+
+        access_by_lua '
+                proxymgr2:use_proxy()
+        ';
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Server $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-NginX-Proxy true;
+        proxy_pass http://$target;
+        proxy_redirect off;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 86400;
+    }
+
+    location ^~ /narrative_version {
+        set $servhost narrative-version.appdev-core;
+        set $servport 80;
+        proxy_pass http://$servhost:$servport/narrative_version;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Start of core service proxies
+    #
+    location ^~ /services/auth {
+        # Use production auth2
+        proxy_pass https://kbase.us/services/auth;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location ^~ /services/auth/login/start {
+        root /config/config/auth2hack ;
+        # total hack
+        error_page 405 = $uri.html;
+    }
+
+    location ^~ /services/auth/link/ {
+        root /config/config/auth2hack ;
+        # total hack
+        error_page 405 = $uri.link.html;
+    }
+
+    location ^~ /services/narrative_method_store {
+        # Use production NMS
+        proxy_pass https://kbase.us/services/narrative_method_store;
+        #proxy_pass http://narrativemethodstore:7125/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location ^~ /services/catalog {
+        # Use production catalog
+        proxy_pass https://kbase.us/services/catalog;
+        #proxy_pass http://catalog:5000/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location ^~ /services/user_profile {
+#			proxy_pass http://userprofile:7126/;
+        # Use production user profile
+        proxy_pass https://kbase.us/services/user_profile;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location ^~ /services/searchapi {
+        set $servicehost searchapi2.appdev-core;
+        proxy_pass http://$servicehost:8080/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location ^~ /services/searchapi2 {
+        set $servicehost searchapi2.appdev-core;
+        proxy_pass http://$servicehost:8080/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location ^~ /services/shock-api {
+        proxy_pass http://shock:7044/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location ^~ /services/awe-api {
+        proxy_pass http://awe:7107/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location ^~ /services/userandjobstate {
+        proxy_pass http://ujs:7083/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location ^~ /services/ws {
+        proxy_pass http://ws:7058/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location ^~ /services/handlemngr {
+        proxy_pass http://handlemngr:9001/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location ^~ /services/handle_service {
+        proxy_pass http://handleservice:7109/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location ^~ /services/handleservice {
+        proxy_pass http://handleservice:7109/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location ^~ /services/service_wizard {
+        proxy_pass http://servicewizard:5000/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location ^~ /services/njs_wrapper {
+        proxy_pass http://appdev.kbase.us:8200/;
+        # maybe rancher dns works?  not yet
+        # proxy_pass http://njswrapper2.appdev-core:8080/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location ^~ /services/njsw2 {
+        proxy_pass http://appdev.kbase.us:8200/;
+        # maybe rancher dns works?  not yet
+        # proxy_pass http://njswrapper2.appdev-core:8080/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location ^~ /services/data_import_export {
+        proxy_pass http://dataimportexport:8200/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location ^~ /services/staging_service/ {
+        proxy_pass http://ftp.kbase.us:3015/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location ^~ /services/kb-ftp-api/ {
+        proxy_pass http://ftp.kbase.us:3002/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location ^~ /services/kb-ftp-api/v0/ {
+        proxy_pass http://ftp.kbase.us:3002/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    # for live kbase-ui container
+    location ~ /(.*) {
+        # rancher-managed kbaseui instance, use next time container is recreated
+        set $servhost kbase-ui.appdev-core;
+        # temporary measure to work around name resolution issue
+        # set $servhost 172.17.0.6;
+        set $servurl $1;
+        proxy_pass http://$servhost:80/$servurl;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location ~ / {
+        root /kb/deployment/services/kbase-ui;
+        index index.html;
+        #ssi on;
+        ssi_silent_errors off;
+        allow all;
+    }
+
+
+}
+# End of https appdev server block

@@ -77,6 +77,14 @@ DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128
 	# added kkeller 30sep2015 for kbase-2777
 	proxy_request_buffering off;
 
+	# added kkeller 03feb2017 for "kernel starting" issue
+	# see: https://github.com/jupyter/docker-stacks/wiki/Docker-Recipes#running-behind-a-nginx-proxy
+	# http://nginx.org/en/docs/http/websocket.html	
+	map $http_upgrade $connection_upgrade {
+			default upgrade;
+			''      close;
+	}
+
 	include /etc/nginx/conf.d/lua;
 
 	include /etc/nginx/sites-enabled/{{ default .Env.NGX_CONF_FILE "ci-narrative"}};
