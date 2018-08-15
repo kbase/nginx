@@ -1,4 +1,4 @@
-user root;
+user {{ default .Env.runuser "root"}};
 daemon off;
 error_log /dev/stdout {{ default .Env.loglevel "info" }};
 
@@ -23,40 +23,8 @@ http {
 	# server_tokens off;
 	proxy_read_timeout 6000;
 
-	# server_names_hash_bucket_size 64;
-	# server_name_in_redirect off;
-
 	include /etc/nginx/mime.types;
 	default_type application/octet-stream;
-
-	lua_shared_dict session_map 1m;
-	lua_shared_dict docker_map 2m;
-	lua_shared_dict token_cache 2m;
-	lua_shared_dict proxy_mgr 100k;
-	lua_shared_dict lock_map 2m;
-
-	# load lua files
-	lua_package_path "/kb/deployment/services/narrative/docker/?;/kb/deployment/services/narrative/docker/?.lua;;";
-
-	# initilize proxymgr - set shared dictionaries
-	init_by_lua '
-		json = require("json")
-		proxymgr = require("proxy_mgr")
-		proxymgr:initialize{
-			lock_name = "lock_map",
-			session_map = ngx.shared.session_map,
-			docker_map = ngx.shared.docker_map,
-			token_cache = ngx.shared.token_cache,
-			proxy_mgr = ngx.shared.proxy_mgr
-		}
-	';
-
-	# start worker processes
-	init_worker_by_lua '
-		proxymgr:check_marker()
-		proxymgr:check_provisioner(0)
-	';
-
 
 	##
 	# SSL Settings
@@ -97,6 +65,7 @@ DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128
 	gzip_http_version 1.1;
 	gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
 
+
 	##
 	# Virtual Host Configs
 	##
@@ -108,144 +77,8 @@ DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128
 	# added kkeller 30sep2015 for kbase-2777
 	proxy_request_buffering off;
 
-	server {
-		listen 80;
-		listen 443 ssl;
-		server_name {{ default .Env.server_name "appdev.kbase.us" }} localhost;
+	include /etc/nginx/conf.d/lua;
 
-		# this resolver is the internal rancher resolver
-		resolver {{ default .Env.dns_resolver "169.254.169.250" }};
+	include /etc/nginx/sites-enabled/{{ default .Env.NGX_CONF_FILE "ci-narrative"}};
 
-		# taken from next-www
-		client_max_body_size 100000m;
-		client_body_temp_path /tmp 1 2;
-		proxy_max_temp_file_size 0;
-		proxy_headers_hash_max_size 4096;
-		proxy_headers_hash_bucket_size 4096;
-		# added kkeller 30sep2015 for kbase-2777
-		proxy_request_buffering off;
-
-        # Dynamic proxy manager
-        location /proxy_map {
-            default_type 'application/json';
-            allow 127.0.0.1;
-            allow 172.17.0.0/16;
-            deny all;
-            set $uri_base '/proxy_map';
-            content_by_lua 'proxymgr:set_proxy()';
-        }
-
-        location /narrative_shutdown {
-            allow 127.0.0.1;
-            allow 172.17.0.0/16;
-            default_type 'application/json';
-            set $uri_base '/proxy_map';
-            content_by_lua 'proxymgr:narrative_shutdown()';
-        }
-
-        location /bad_request {
-               internal;
-               content_by_lua '
-               ngx.log(ngx.ERR, "badrequest")
-               ';
-
-               return 404;
-        }
-
-		root /kb/deployment;
-		index home.html home.shtml;
-
-		# Anything under /narrative gets handled by the proxy manager
-		location /narrative/(.*) {
-            default_type 'text/plain';
-            error_page 401 /index.html;
-
-            set $target '';
-            access_by_lua '
-                proxymgr:use_proxy()
-            ';
-            proxy_set_header X-Forwarded-Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-Server $host;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header Host $http_host;
-            proxy_set_header X-NginX-Proxy true;
-            proxy_pass http://$target;
-            proxy_redirect off;
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "upgrade";
-            proxy_read_timeout 86400;
-		}
-
-		# Dynamic service rule.  This usees rancher DNS names to redirect
-		location ~ /dynserv/([^/\.\:]+)/(.*) {
-			proxy_pass http://$1:5000/;
-			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-			proxy_set_header X-Real-IP $remote_addr;
-			proxy_set_header Host $http_host;
-			proxy_set_header X-Forwarded-Proto $scheme;
-		}
-
-		# Anything under services gets proxied to the servicename port 80
-		location ~ /services/([^/\.\:]+)/?(.*) {
-			proxy_pass http://$1:8080/$2;
-			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-			proxy_set_header X-Real-IP $remote_addr;
-			proxy_set_header Host $http_host;
-			proxy_set_header X-Forwarded-Proto $scheme;
-		}
-
-		# Grandfathered entry for kbase-ui as root 
-		# KBase-ui can also be accessed via /services/kbase-ui which is
-		# more uniform
-		location ~ /?(.*) {
-			proxy_pass http://kbase-ui:8080/$1;
-			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-			proxy_set_header X-Real-IP $remote_addr;
-			proxy_set_header Host $http_host;
-			proxy_set_header X-Forwarded-Proto $scheme;
-		}
-
-	}
-	# End of main http server block
-
-    # Proxy	for the nginx remote api
-    server {
-        listen 127.0.0.1:65000;
-        ssl off;
-
-        auth_basic_user_file /etc/nginx/htpasswd;
-        location / {
-            proxy_pass http://unix:/var/run/docker.sock:/;
-            }
-    }
-
-    # Proxy for globus online - non-blocking lua code doesn't handle https, so
-    # we build an internal proxy to the Globus Nexus API endpoint
-    server {
-        listen 127.0.0.1:65001;
-
-        location / {
-            proxy_pass https://nexus.api.globusonline.org/;
-            proxy_set_header	Host	nexus.api.globusonline.org;
-            proxy_set_header	X-Forwarded-For $proxy_add_x_forwarded_for;
-        }
-    }
-
-    server {
-        listen 127.0.0.1:65002;
-        location ~ /(.*) {
-                resolver 8.8.8.8 valid=5s;
-                proxy_pass https://{{ default .Env.port65002 "ci.kbase.us/services/auth"}}/$1;
-                proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
-                proxy_intercept_errors on;
-                error_page 301 302 307 = @handle_redirect;
-        }
-        location @handle_redirect {
-                resolver 8.8.8.8 valid=5s;
-                set $saved_redirect_loc '$upstream_http_location';
-                proxy_pass $saved_redirect_loc;
-        }
-	}
 }

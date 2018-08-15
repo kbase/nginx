@@ -54,6 +54,9 @@ RUN rm -rf /etc/nginx && \
     rm dockerize-linux-amd64-v0.6.1.tar.gz && \
 	mv dockerize /kb/deployment/bin
 
+COPY nginx-conf.d/ /usr/local/openresty/nginx/conf/conf.d
+COPY nginx-sites.d/ /usr/local/openresty/nginx/conf/sites-enabled
+
 COPY --from=narrative /kb/dev_container/narrative/docker /kb/deployment/services/narrative/docker/
 
 
