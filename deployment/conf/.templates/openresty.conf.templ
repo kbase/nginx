@@ -87,6 +87,6 @@ DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128
 
 	include /etc/nginx/conf.d/lua;
 
-	include /etc/nginx/sites-enabled/{{ default .Env.NGX_CONF_FILE "ci-narrative"}};
+	include /etc/nginx/sites-enabled/{{ default .Env.nginx_site_cfg "ci-narrative"}};
 
 }
