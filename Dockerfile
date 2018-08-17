@@ -27,6 +27,10 @@ RUN luarocks install luasocket;\
     luarocks install lua-spore;\
     luarocks install luacrypto
 
+# Copy lua code from narrative repo
+COPY --from=narrative /kb/dev_container/narrative/docker /kb/deployment/services/narrative/docker/
+
+
 # Install docker binaries based on
 # https://docs.docker.com/install/linux/docker-ce/debian/#install-docker-ce
 # Also add the user to the groups that map to "docker" on Linux and "daemon" on
@@ -38,7 +42,8 @@ RUN apt-get install -y apt-transport-https software-properties-common && \
     apt-get install -y docker-ce=18.03.0~ce-0~debian && \
     usermod -aG docker www-data && \
     usermod -g root www-data && \
-    mkdir -p /kb/deployment/services/narrative/docker
+    mkdir -p /kb/deployment/services/narrative/docker && \
+    cp /kb/deployment/services/narrative/docker/proxy_mgr.lua /kb/deployment/services/narrative/docker/proxy_mgr2.lua
 
 ADD githashes /tmp/githashes
 
@@ -56,8 +61,6 @@ RUN rm -rf /etc/nginx && \
 
 COPY nginx-conf.d/ /usr/local/openresty/nginx/conf/conf.d
 COPY nginx-sites.d/ /usr/local/openresty/nginx/conf/sites-enabled
-
-COPY --from=narrative /kb/dev_container/narrative/docker /kb/deployment/services/narrative/docker/
 
 
 # The BUILD_DATE value seem to bust the docker cache when the timestamp changes, move to
