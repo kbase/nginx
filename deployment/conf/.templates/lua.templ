@@ -4,11 +4,13 @@ lua_shared_dict token_cache 2m;
 lua_shared_dict proxy_mgr 100k;
 lua_shared_dict lock_map 2m;
 
+{{ if eq .Env.nginx_site_cfg "prod-narrative" }}
 lua_shared_dict session_map_legacy 1m;
 lua_shared_dict docker_map_legacy 2m;
 lua_shared_dict token_cache_legacy 2m;
 lua_shared_dict proxy_mgr_legacy 100k;
 lua_shared_dict lock_map_legacy 2m;
+{{ end }}
 
 # load lua files
 lua_package_path "/kb/deployment/services/narrative/docker/?;/kb/deployment/services/narrative/docker/?.lua;;";
@@ -23,8 +25,9 @@ init_by_lua '
 		docker_map = ngx.shared.docker_map,
 		token_cache = ngx.shared.token_cache,
 		proxy_mgr = ngx.shared.proxy_mgr,
-		provision_count = 20
+		provision_count = {{ default .Env.narr_provision_count "20" }}
 	}
+{{ if eq .Env.nginx_site_cfg "prod-narrative"}}
 	proxymgr2 = require("proxy_mgr2")
 	proxymgr2:initialize{
 		lock_name = "lock_map_legacy",
@@ -35,12 +38,15 @@ init_by_lua '
 		provision_count = 10,
 		image = "kbase/narrative:legacy"
 	}
+{{ end }}
 ';
 
 # start worker processes
 init_worker_by_lua '
 	proxymgr:check_marker()
 	proxymgr:check_provisioner(0)
+{{ if eq .Env.nginx_site_cfg "prod-narrative"}}
 	proxymgr2:check_marker()
 	proxymgr2:check_provisioner(0)
+{{ end }}
 ';

@@ -51,6 +51,7 @@ RUN rm -rf /etc/nginx && \
     ln -s /usr/local/openresty/nginx/conf /etc/nginx && \
     cd /etc/nginx && \
     mkdir ssl /var/log/nginx && \
+    mkdir /usr/local/openresty/nginx/conf/conf.d && \
     openssl req -x509 -newkey rsa:4096 -keyout ssl/key.pem -out ssl/cert.pem -days 365 -nodes \
        -subj '/C=US/ST=California/L=Berkeley/O=Lawrence Berkeley National Lab/OU=KBase/CN=localhost' && \
     cd /tmp && \
@@ -59,7 +60,6 @@ RUN rm -rf /etc/nginx && \
     rm dockerize-linux-amd64-v0.6.1.tar.gz && \
 	mv dockerize /kb/deployment/bin
 
-COPY nginx-conf.d/ /usr/local/openresty/nginx/conf/conf.d
 COPY nginx-sites.d/ /usr/local/openresty/nginx/conf/sites-enabled
 
 
@@ -78,7 +78,8 @@ ENTRYPOINT [ "/kb/deployment/bin/dockerize" ]
 # Here are some default params passed to dockerize. They would typically
 # be overidden by docker-compose at startup
 CMD [ "-template", "/kb/deployment/conf/.templates/openresty.conf.templ:/etc/nginx/nginx.conf", \
-      "-template", "/kb/deployment/conf/.templates/minikb_narrative.templ:/etc/nginx/sites-enabled/minikb_narrative", \
+      "-template", "/kb/deployment/conf/.templates/minikb-narrative.templ:/etc/nginx/sites-enabled/minikb-narrative", \
+      "-template", "/kb/deployment/conf/.templates/lua.templ:/etc/nginx/conf.d/lua", \
       "-env", "/kb/deployment/conf/localhost.ini", \
       "-stdout", "/var/log/nginx/access.log", \
       "-stdout", "/var/log/nginx/error.log", \
