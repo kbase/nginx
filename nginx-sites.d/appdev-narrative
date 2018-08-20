@@ -115,12 +115,14 @@ server {
 
 # Main HTTPS server.  This handles services and the narrative plus other stuff
 #
+
+# this resolver is the internal rancher resolver - define it in the http scope.
+resolver {{ default .Env.resolver "169.254.169.250" }} valid=5s ipv6=off;
+
 server {
     listen 443;
     server_name appdev.kbase.us localhost;
 
-    # this resolver is the internal rancher resolver
-    resolver 169.254.169.250 valid=5s ipv6=off;
 
     # taken from next-www
     client_max_body_size 100000m;

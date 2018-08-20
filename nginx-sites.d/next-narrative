@@ -134,13 +134,14 @@ server {
 #there is a patch to support tth which would allow one request every 16 minutes
 #limit_req_zone $1 zone=shockapi:10m rate=1r/s;
 
+# this resolver is the internal rancher resolver, define it in the http scope to ensure
+# that it is inherited in location blocks nested in the server block
+# see https://github.com/rancher/rancher/issues/7691#issuecomment-277635645
+resolver {{ default .Env.resolver "169.254.169.250" }} valid=5s ipv6=off;
+
 server {
     listen 443;
     server_name next.kbase.us localhost;
-
-    # this resolver is the internal rancher resolver
-    # see https://github.com/rancher/rancher/issues/7691#issuecomment-277635645
-    resolver 169.254.169.250 valid=5s ipv6=off;
 
     # taken from next-www
     client_max_body_size 100000m;

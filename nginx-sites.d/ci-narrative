@@ -119,13 +119,13 @@ server {
 # may no longer need this
 # limit_req_zone $1 zone=shockapi:10m rate=1r/m;
 
+# this resolver is the internal rancher resolver
+# see https://github.com/rancher/rancher/issues/7691#issuecomment-277635645
+resolver {{ default .Env.resolver "169.254.169.250" }} valid=5s ipv6=off;
+
 server {
         listen 443;
         server_name ci.kbase.us localhost;
-
-        # this resolver is the internal rancher resolver
-        # see https://github.com/rancher/rancher/issues/7691#issuecomment-277635645
-        resolver 169.254.169.250 valid=5s ipv6=off;
 
         # taken from next-www
         client_max_body_size 100000m;
