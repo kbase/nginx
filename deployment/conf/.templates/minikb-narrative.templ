@@ -93,7 +93,21 @@ server {
                 proxy_set_header X-Forwarded-Proto $scheme;
         }
 
-        # Anything under services gets proxied to the servicename port 80
+        # The Auth service is kind of a special snowflake, and needs custom configs
+        location ^~ /services/auth/ {
+                proxy_pass http://auth:8080/;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header Host $host;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                proxy_cookie_path /login /services/auth/login;
+                proxy_cookie_path /link /services/auth/link;
+                add_header 'Access-Control-Allow-Origin' '*';
+                add_header 'Access-Control-Allow-Headers' 'Origin, X-Requested-With, Authorization, Content-Type, Accept';
+
+        }
+
+        # Anything else under services gets proxied to the servicename port 80
         location ~ /services/([^/\.\:]+)/?(.*) {
                 proxy_pass http://$1:8080/$2;
                 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
