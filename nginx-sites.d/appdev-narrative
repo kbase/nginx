@@ -146,6 +146,12 @@ server {
     root /kb/deployment;
     index home.html home.shtml;
 
+    access_by_lua_block {
+            ngx.header["X-kbaseuser"] = proxymgr:get_session()
+            return
+    }
+
+
     location ~ /dynserv/([^/]+)/(.*) {
         set $dynservhost $1;
         set $dynservurl $2;

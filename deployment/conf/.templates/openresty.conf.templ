@@ -44,8 +44,11 @@ DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128
 	##
 	# Logging Settings
 	##
+    log_format kbase_combined '$remote_addr - $sent_http_X_kbaseuser [$time_local] '
+                '"$request" $status $body_bytes_sent '
+                '"$http_referer" "$http_user_agent"';
 
-	access_log /var/log/nginx/access.log combined;
+	access_log /var/log/nginx/access.log kbase_combined;
 	error_log /var/log/nginx/error.log {{ default .Env.loglevel "info" }};
 {{ if .Env.syslog_server }}
     access_log syslog:server={{ .Env.syslog_server }},facility=local2,tag=ci,severity=info combined;
