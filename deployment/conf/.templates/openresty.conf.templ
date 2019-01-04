@@ -37,8 +37,8 @@ DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128
 ';
 
 	ssl_prefer_server_ciphers on;
-	ssl_certificate /kb/deployment/conf/localhost.crt;
-	ssl_certificate_key /kb/deployment/conf/localhost.key;
+	ssl_certificate {{ default .Env.sslcertpath "/kb/deployment/conf/localhost.crt"}};
+	ssl_certificate_key {{ default .Env.sslcertkeypath "/kb/deployment/conf/localhost.key"}};
 
 
 	##
