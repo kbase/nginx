@@ -152,6 +152,11 @@ server {
         root /kb/deployment;
         index home.html home.shtml;
 
+        access_by_lua_block {
+                ngx.header["X-kbaseuser"] = proxymgr:get_session()
+                return
+        }
+
         location ^~ /bad_request {
                 internal;
                 content_by_lua '

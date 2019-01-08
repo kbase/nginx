@@ -78,6 +78,11 @@ server {
 	root /usr/share/nginx/kbase-maintenance-site/htdocs;
 	index index.html index.htm;
 
+    access_by_lua_block {
+            ngx.header["X-kbaseuser"] = proxymgr:get_session()
+            return
+    }
+
     # This is for letsencrypt
     location /.well-known {
             root /certs/;
