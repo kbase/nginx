@@ -1,12 +1,68 @@
 ARG STAGE1TAG=develop
 FROM kbase/narrative:${STAGE1TAG} as narrative
 
+# Cribbed from https://hub.docker.com/r/owasp/modsecurity/dockerfile
+FROM debian:jessie as modsecurity-build
+MAINTAINER Chaim Sanders chaim.sanders@gmail.com
+
+ARG RESTY_VERSION="1.13.6.1"
+
+# Install Prereqs
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update -qq && \
+    apt install -qq -y --no-install-recommends --no-install-suggests \
+    ca-certificates \
+    automake \
+    autoconf \
+    build-essential \
+    libcurl4-openssl-dev \
+    libpcre++-dev \
+    libtool \
+    libxml2-dev \
+    libyajl-dev \
+    lua5.2-dev \
+    git \
+    pkgconf \
+    ssdeep \
+    libgeoip-dev \
+    wget && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN cd /opt && \
+    git clone --depth 1 -b v3/master --single-branch https://github.com/SpiderLabs/ModSecurity && \
+    cd ModSecurity && \
+    git submodule init && \
+    git submodule update && \
+    ./build.sh && \
+    ./configure && \
+    make && \
+    make install
+
+RUN strip /usr/local/modsecurity/bin/* /usr/local/modsecurity/lib/*.a /usr/local/modsecurity/lib/*.so* && \
+    cd /opt && \
+    git clone --depth 1 https://github.com/SpiderLabs/ModSecurity-nginx.git && \
+    export NGINX_VERSION=`echo $RESTY_VERSION |  sed -E "s/\.[0-9]+\$//"` && \
+    wget http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
+    tar xvzf nginx-${NGINX_VERSION}.tar.gz && \
+    cd nginx-${NGINX_VERSION} && \
+    ./configure --without-http_gzip_module --with-compat --add-dynamic-module=../ModSecurity-nginx && \
+    make modules && \
+    cp objs/ngx_http_modsecurity_module.so /opt/ModSecurity/
+
 FROM openresty/openresty:jessie
 
 # These ARGs values are passed in via the docker build command
 ARG BUILD_DATE
 ARG VCS_REF
 ARG BRANCH
+
+# Install the modsecurity related files
+COPY --from=modsecurity-build /usr/local/modsecurity/ /usr/local/modsecurity/
+RUN ldconfig && \
+    mkdir /etc/nginx/modsecurity.d/
+COPY --from=modsecurity-build /opt/ModSecurity/modsecurity.conf-recommended /etc/nginx/modsecurity.d/modsecurity.conf
+COPY --from=modsecurity-build /opt/ModSecurity/ngx_http_modsecurity_module.so /usr/local/openresty/nginx/modules
+RUN  echo "include /etc/nginx/modsecurity.d/modsecurity.conf" > /etc/nginx/modsecurity.d/include.conf
 
 COPY deployment/ /kb/deployment/
 
