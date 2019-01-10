@@ -7,7 +7,7 @@ When this image is built, it copies the lua code that is in the narrative repo. 
 code can be found at https://github.com/kbase/narrative/tree/develop/docker
 
 Within the Docker.lua file, an environment variable NARR_ENV_VARS is looked for, and if
-found, it is used to popular the default environment variables used when starting
+found, it is used to populate the default environment variables used when starting
 narratives. This can be used to set environment variables that the narrative container
 needs to be customized for the environment it runs in.
 
