@@ -179,6 +179,8 @@ server {
         listen 443;
         server_name {{ default .Env.server_name "localhost" }}
 
+        modsecurity on;
+
         # this resolver is the internal rancher resolver
         # see https://github.com/rancher/rancher/issues/7691#issuecomment-277635645
         resolver {{ default .Env.resolver "127.0.0.11" }} valid=5s ipv6=off;

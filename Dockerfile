@@ -1,7 +1,7 @@
 ARG STAGE1TAG=develop
 FROM kbase/narrative:${STAGE1TAG} as narrative
 
-FROM openresty/openresty:jessie
+FROM myopenresty:latest
 
 # These ARGs values are passed in via the docker build command
 ARG BUILD_DATE
@@ -13,19 +13,18 @@ COPY deployment/ /kb/deployment/
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
-        software-properties-common ca-certificates apt-transport-https curl net-tools
+        software-properties-common ca-certificates apt-transport-https curl net-tools libssl1.0-dev wget
 
 
 # Split here just to manage the layer sizes
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
-     lua5.1 luarocks liblua5.1-0 liblua5.1-0-dev liblua5.1-json liblua5.1-lpeg2 \
-     libssl-dev apt-transport-https
+     lua5.1 liblua5.1-json lua-lpeg apt-transport-https
 
 RUN luarocks install luasocket;\
     luarocks install luajson;\
     luarocks install penlight;\
     luarocks install lua-spore;\
-    luarocks install luacrypto
+    luarocks install luacrypto LDFLAGS='-I/usr/include/openssl -L/usr/lib/x86_64-linux-gnu' OPENSSL_INCDIR=/usr/include
 
 # Copy lua code from narrative repo
 COPY --from=narrative /kb/dev_container/narrative/docker /kb/deployment/services/narrative/docker/
@@ -36,10 +35,10 @@ COPY --from=narrative /kb/dev_container/narrative/docker /kb/deployment/services
 # Also add the user to the groups that map to "docker" on Linux and "daemon" on
 # MacOS
 RUN apt-get install -y apt-transport-https software-properties-common && \
-    curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add - && \
-    add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable" && \
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - && \
+    add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" && \
     apt-get update && \
-    apt-get install -y docker-ce=18.03.0~ce-0~debian && \
+    apt-get install -y docker-ce=18.06.1~ce~3-0~ubuntu && \
     usermod -aG docker www-data && \
     usermod -g root www-data && \
     mkdir -p /kb/deployment/services/narrative/docker && \
@@ -58,7 +57,9 @@ RUN rm -rf /etc/nginx && \
 	wget -N https://github.com/kbase/dockerize/raw/master/dockerize-linux-amd64-v0.6.1.tar.gz && \
 	tar xvzf dockerize-linux-amd64-v0.6.1.tar.gz && \
     rm dockerize-linux-amd64-v0.6.1.tar.gz && \
-	mv dockerize /kb/deployment/bin
+	mv dockerize /kb/deployment/bin && \
+    cp /kb/deployment/conf/RESPONSE-999-EXCLUSION-RULES-AFTER-CRS.conf /usr/local/modsecurity/crs-rules && \
+    cp /kb/deployment/conf/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf  /usr/local/modsecurity/crs-rules
 
 COPY nginx-sites.d/ /usr/local/openresty/nginx/conf/sites-enabled
 
@@ -78,7 +79,7 @@ ENTRYPOINT [ "/kb/deployment/bin/dockerize" ]
 # Here are some default params passed to dockerize. They would typically
 # be overidden by docker-compose at startup
 CMD [ "-template", "/kb/deployment/conf/.templates/openresty.conf.templ:/etc/nginx/nginx.conf", \
-      "-template", "/kb/deployment/conf/.templates/minikb-narrative.templ:/etc/nginx/sites-enabled/minikb-narrative", \
+      "-template", "/kb/deployment/conf/.templates/minikb-narrative.templ:/etc/nginx/sites-enabled/minikb_narrative", \
       "-template", "/kb/deployment/conf/.templates/lua.templ:/etc/nginx/conf.d/lua", \
       "-env", "/kb/deployment/conf/localhost.ini", \
       "-stdout", "/var/log/nginx/access.log", \

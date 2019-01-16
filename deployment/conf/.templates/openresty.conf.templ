@@ -5,6 +5,8 @@ error_log /dev/stdout {{ default .Env.loglevel "info" }};
 worker_processes auto;
 pid /run/nginx.pid;
 
+load_module modules/ngx_http_modsecurity_module.so;
+
 events {
 	worker_connections 768;
 	# multi_accept on;
@@ -25,6 +27,27 @@ http {
 
 	include /etc/nginx/mime.types;
 	default_type application/octet-stream;
+
+    modsecurity on;
+    modsecurity_rules_file /usr/local/openresty/nginx/modsecurity.d/modsecurity.conf;
+    modsecurity_rules_file /usr/local/openresty/nginx/modsecurity.d/crs-setup.conf;
+
+	# The following file is to handle exclusions before the main rules are loaded
+    modsecurity_rules_file /usr/local/modsecurity/crs-rules/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf;
+
+    modsecurity_rules_file /usr/local/modsecurity/crs-rules/REQUEST-901-INITIALIZATION.conf;
+    modsecurity_rules_file /usr/local/modsecurity/crs-rules/REQUEST-905-COMMON-EXCEPTIONS.conf;
+    modsecurity_rules_file /usr/local/modsecurity/crs-rules/REQUEST-911-METHOD-ENFORCEMENT.conf;
+    modsecurity_rules_file /usr/local/modsecurity/crs-rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf;
+    modsecurity_rules_file /usr/local/modsecurity/crs-rules/REQUEST-921-PROTOCOL-ATTACK.conf;
+    modsecurity_rules_file /usr/local/modsecurity/crs-rules/REQUEST-930-APPLICATION-ATTACK-LFI.conf;
+    modsecurity_rules_file /usr/local/modsecurity/crs-rules/REQUEST-931-APPLICATION-ATTACK-RFI.conf;
+    modsecurity_rules_file /usr/local/modsecurity/crs-rules/REQUEST-932-APPLICATION-ATTACK-RCE.conf;
+    modsecurity_rules_file /usr/local/modsecurity/crs-rules/REQUEST-942-APPLICATION-ATTACK-SQLI.conf;
+
+	# The following file (in this repo) lists to rules to exclude from the main ruleset. This is the
+	# recommended way to get rid of individual rules in the standard rulesets that are a problem
+    modsecurity_rules_file /usr/local/modsecurity/crs-rules/RESPONSE-999-EXCLUSION-RULES-AFTER-CRS.conf;
 
 	##
 	# SSL Settings
