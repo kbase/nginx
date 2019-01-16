@@ -81,6 +81,7 @@ ENTRYPOINT [ "/kb/deployment/bin/dockerize" ]
 CMD [ "-template", "/kb/deployment/conf/.templates/openresty.conf.templ:/etc/nginx/nginx.conf", \
       "-template", "/kb/deployment/conf/.templates/minikb-narrative.templ:/etc/nginx/sites-enabled/minikb_narrative", \
       "-template", "/kb/deployment/conf/.templates/lua.templ:/etc/nginx/conf.d/lua", \
+      "-template", "/kb/deployment/conf/.templates/modsecurity.conf.templ:/usr/local/openresty/nginx/modsecurity.d/modsecurity.conf", \
       "-env", "/kb/deployment/conf/localhost.ini", \
       "-stdout", "/var/log/nginx/access.log", \
       "-stdout", "/var/log/nginx/error.log", \
