@@ -99,6 +99,9 @@ DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128
 	##
 	# Virtual Host Configs
 	##
+	# Note that if ModSecurity is enabled, it imposes a max body limit as well "SecRequestBodyLimit" and
+	# SecRequestBodyNoFilesLimit which overrides client_max_body_size. See the modsecurity.conf config
+	# 
 	client_max_body_size 100000m;
 	client_body_temp_path  /tmp 1 2;
 	proxy_max_temp_file_size 0;

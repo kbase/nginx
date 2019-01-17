@@ -1,3 +1,6 @@
+# Please see this URL for documentation about ModSecurity configuration
+# https://www.feistyduck.com/library/modsecurity-handbook-free/
+
 # -- Rule engine initialization ----------------------------------------------
 
 # Enable ModSecurity, attaching it to every transaction. Use detection
@@ -35,6 +38,10 @@ SecRule REQUEST_HEADERS:Content-Type "application/json" \
 # to the size of data, with files excluded. You want to keep that value as
 # low as practical.
 #
+# These numbers are low to limit disruption. Because the following body limit action
+# directive is set to ProcessPartial, we look at the first part of the requests but
+# don't block the request if it is larger than what we're configured to inspect.
+#
 SecRequestBodyLimit 13107200
 SecRequestBodyNoFilesLimit 131072
 
@@ -43,7 +50,11 @@ SecRequestBodyNoFilesLimit 131072
 # when SecRuleEngine is set to DetectionOnly mode in order to minimize
 # disruptions when initially deploying ModSecurity.
 #
-SecRequestBodyLimitAction Reject
+# See https://github.com/SpiderLabs/ModSecurity/wiki/Reference-Manual-(v2.x)#SecRequestBodyLimitAction
+# KBase handles very large datasets and we can't afford to have the proxy inspect every character of the
+# inbound data
+# 
+SecRequestBodyLimitAction ProcessPartial
 
 # Verify that we've correctly processed the request body.
 # As a rule of thumb, when failing to process a request body
@@ -152,7 +163,7 @@ SecResponseBodyAccess On
 # configuration below to catch documents but avoid static files
 # (e.g., images and archives).
 #
-SecResponseBodyMimeType text/plain text/html text/xml
+SecResponseBodyMimeType text/plain text/html text/xml text/json application/json (null)
 
 # Buffer response bodies of up to 512 KB in length.
 SecResponseBodyLimit 524288
@@ -172,13 +183,13 @@ SecResponseBodyLimitAction ProcessPartial
 # This default setting is chosen due to all systems have /tmp available however, 
 # this is less than ideal. It is recommended that you specify a location that's private.
 #
-SecTmpDir /tmp/
+SecTmpDir {{ default .Env.SecTmpDir "/tmp/" }}
 
 # The location where ModSecurity will keep its persistent data.  This default setting 
 # is chosen due to all systems have /tmp available however, it
 # too should be updated to a place that other users can't access.
 #
-SecDataDir /tmp/
+SecDataDir {{ default .Env.SecDataDir "/opt/ModSecurity/var/" }}
 
 
 # -- File uploads handling configuration -------------------------------------
@@ -187,28 +198,31 @@ SecDataDir /tmp/
 # location must be private to ModSecurity. You don't want other users on
 # the server to access the files, do you?
 #
-#SecUploadDir /opt/modsecurity/var/upload/
+SecUploadDir {{ default .Env.SecUploadDir "/opt/ModSecurity/var/upload/" }}
 
 # By default, only keep the files that were determined to be unusual
 # in some way (by an external inspection script). For this to work you
 # will also need at least one file inspection rule.
 #
-#SecUploadKeepFiles RelevantOnly
+SecUploadKeepFiles {{ default .Env.SecUploadKeepFiles "Off" }}
 
 # Uploaded files are by default created with permissions that do not allow
 # any other user to access them. You may need to relax that if you want to
 # interface ModSecurity to an external program (e.g., an anti-virus).
 #
-#SecUploadFileMode 0600
+SecUploadFileMode 0660
 
+# Limit the number of files we are willing
+# to handle in any one request.
+SecUploadFileLimit 32
 
 # -- Debug log configuration -------------------------------------------------
 
 # The default debug log configuration is to duplicate the error, warning
 # and notice messages from the error log.
 #
-#SecDebugLog /opt/modsecurity/var/log/debug.log
-#SecDebugLogLevel 3
+SecDebugLog {{ default .Env.SecDebugLog "/opt/ModSecurity/var/debug.log" }}
+SecDebugLogLevel 3
 
 
 # -- Audit log configuration -------------------------------------------------
@@ -226,11 +240,11 @@ SecAuditLogParts ABIJDEFHZ
 # Use a single file for logging. This is much easier to look at, but
 # assumes that you will use the audit log only ocassionally.
 #
-SecAuditLogType Serial
-SecAuditLog /var/log/modsec_audit.log
+SecAuditLogType {{ default .Env.SecAuditLogType "Serial" }}
+SecAuditLog {{ default .Env.SecAuditLog "/opt/ModSecurity/var/modsec_audit.log" }}
 
 # Specify the path for concurrent audit logging.
-#SecAuditLogStorageDir /opt/modsecurity/var/audit/
+SecAuditLogStorageDir {{ default .Env.SecAuditLogStorageDir "/opt/ModSecurity/var/audit/" }}
 
 
 # -- Miscellaneous -----------------------------------------------------------
@@ -261,3 +275,6 @@ SecUnicodeMapFile unicode.mapping 20127
 # version, Anonymous unique id for host.
 SecStatusEngine On
 
+# What do we do when the engine notices a rule hit?
+# 
+SecDefaultAction "phase:1,log,auditlog,pass"

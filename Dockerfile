@@ -58,6 +58,7 @@ RUN rm -rf /etc/nginx && \
 	tar xvzf dockerize-linux-amd64-v0.6.1.tar.gz && \
     rm dockerize-linux-amd64-v0.6.1.tar.gz && \
 	mv dockerize /kb/deployment/bin && \
+    mkdir -vp /opt/ModSecurity/var/upload && \
     cp /kb/deployment/conf/RESPONSE-999-EXCLUSION-RULES-AFTER-CRS.conf /usr/local/modsecurity/crs-rules && \
     cp /kb/deployment/conf/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf  /usr/local/modsecurity/crs-rules
 
