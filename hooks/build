@@ -7,7 +7,7 @@ echo "IMAGE_NAME = ${IMAGE_NAME}"
 echo "DOCKER_REPO = ${DOCKER_REPO}"
 echo "CACHE_TAG = ${CACHE_TAG}"
 export BRANCH=${TRAVIS_BRANCH:-`git symbolic-ref --short HEAD`}
-if [ "$BRANCH" == "master" -o "$BRANCH" == "mini" ]; then
+if [ "$BRANCH" == "master" -o "$BRANCH" == "mini" -o "$BRANCH" == "logkbaseuser" ]; then
     export STAGE1TAG="latest"
 else
     export STAGE1TAG="${BRANCH}"

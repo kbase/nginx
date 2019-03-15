@@ -37,15 +37,18 @@ DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128
 ';
 
 	ssl_prefer_server_ciphers on;
-	ssl_certificate /kb/deployment/conf/localhost.crt;
-	ssl_certificate_key /kb/deployment/conf/localhost.key;
+	ssl_certificate {{ default .Env.sslcertpath "/kb/deployment/conf/localhost.crt"}};
+	ssl_certificate_key {{ default .Env.sslcertkeypath "/kb/deployment/conf/localhost.key"}};
 
 
 	##
 	# Logging Settings
 	##
+    log_format kbase_combined '$remote_addr - $sent_http_X_kbaseuser [$time_local] '
+                '"$request" $status $body_bytes_sent '
+                '"$http_referer" "$http_user_agent"';
 
-	access_log /var/log/nginx/access.log combined;
+	access_log /var/log/nginx/access.log kbase_combined;
 	error_log /var/log/nginx/error.log {{ default .Env.loglevel "info" }};
 {{ if .Env.syslog_server }}
     access_log syslog:server={{ .Env.syslog_server }},facility=local2,tag=ci,severity=info combined;
