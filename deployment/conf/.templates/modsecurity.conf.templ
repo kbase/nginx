@@ -275,6 +275,9 @@ SecUnicodeMapFile unicode.mapping 20127
 # version, Anonymous unique id for host.
 SecStatusEngine On
 
-# What do we do when the engine notices a rule hit?
-# 
-SecDefaultAction "phase:1,log,auditlog,pass"
+
+# Avoid logging Authorization headers so that we don't leak authtokens
+# This rule is in the manual I found, but is not currently supported - ugh!
+# SecAction "phase:5,nolog,pass,\
+#    sanitiseRequestHeader:Authorization"
+
