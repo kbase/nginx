@@ -1,6 +1,3 @@
-ARG STAGE1TAG=develop
-FROM kbase/narrative:${STAGE1TAG} as narrative
-
 FROM openresty/openresty:jessie
 
 # These ARGs values are passed in via the docker build command
@@ -10,7 +7,8 @@ ARG BRANCH
 
 COPY deployment/ /kb/deployment/
 
-RUN apt-get update && \
+RUN cp /kb/deployment/conf/sources.list /etc/apt/sources.list && \
+    apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         software-properties-common ca-certificates apt-transport-https curl net-tools
@@ -27,9 +25,10 @@ RUN luarocks install luasocket;\
     luarocks install lua-spore;\
     luarocks install luacrypto
 
-# Copy lua code from narrative repo
-COPY --from=narrative /kb/dev_container/narrative/docker /kb/deployment/services/narrative/docker/
-
+# Copy lua code to destination
+# COPY --from=narrative /kb/dev_container/narrative/docker /kb/deployment/services/narrative/docker/
+RUN mkdir -p /kb/deployment/services/narrative && \
+    mv /kb/deployment/docker /kb/deployment/services/narrative
 
 # Install docker binaries based on
 # https://docs.docker.com/install/linux/docker-ce/debian/#install-docker-ce
