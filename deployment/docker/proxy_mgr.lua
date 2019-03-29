@@ -368,15 +368,6 @@ provisioner = function()
     end
 end
 
-queue_provisioner = function(self)
-    local success, err = ngx.timer.at(0, provisioner)
-    if success then
-        ngx.log(ngx.INFO, "Provisioner queued to run immediately: ")
-    else
-        ngx.log(ngx.ERR, "Error enqueuing provisioner to run immediately: "..err)
-    end
-end
-
 -- This function just checks to make sure there is a provisioner function in the queue
 -- returns true if there was one, false otherwise
 check_provisioner = function(self, now)
@@ -461,7 +452,7 @@ initialize_workers = function(self)
 
     local success, err = ngx.timer.every(M.sweep_interval, sweeper)
     if success then
-        ngx.log(ngx.INFO, "Set marker function to run every "..M.sweep_interval.." seconds")
+        ngx.log(ngx.INFO, "Set sweeper function to run every "..M.sweep_interval.." seconds")
     else
         ngx.log(ngx.ERR, "Error setting marker to run every "..M.sweep_interval.." seconds: "..err)
     end
@@ -472,6 +463,14 @@ initialize_workers = function(self)
     else
         ngx.log(ngx.ERR, "Error setting provisioner to run every "..M.provision_interval.." seconds: "..err)
     end
+
+    success, err = ngx.timer.at(0, provisioner)
+    if success then
+        ngx.log(ngx.INFO, "Provisioner queued to run immediately: ")
+    else
+        ngx.log(ngx.ERR, "Error enqueuing provisioner to run immediately: "..err)
+    end    
+    
 end
 
 -- This function will shut down a running Narrative Docker container immediately
