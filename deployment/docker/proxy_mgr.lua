@@ -206,10 +206,6 @@ sweeper = function()
             dock_lock:unlock() -- unlock if it worked
         end
     end
-    -- reset sweeper
-    proxy_mgr:delete('next_sweep')
-    -- enqueue ourself again
-    check_sweeper()
 end
 
 -- This function just checks to make sure there is a sweeper function in the queue
@@ -292,12 +288,6 @@ marker = function()
     end
     ngx.log(ngx.INFO, "marker pass finished")
 
-    -- reset marker
-    proxy_mgr:delete('next_mark')
-    -- enqueue sweeper
-    check_sweeper()
-    -- requeue ourselves
-    check_marker()
 end
 
 -- This function just checks to make sure there is a marker function in the queue
@@ -376,10 +366,6 @@ provisioner = function()
             ngx.log(ngx.WARN, "Unable to provision containers, currently running "..total.." for max of "..M.container_max)
         end
     end
-    -- reset provisioner
-    proxy_mgr:delete('next_provision')
-    -- enqueue self
-    check_provisioner()
 end
 
 -- This function just checks to make sure there is a provisioner function in the queue
@@ -445,13 +431,14 @@ initialize = function(self, conf)
         authclient:initialize {
             token_cache = token_cache
         }
-        ngx.log(ngx.INFO, string.format("Initializing proxy manager: sweep_interval %d mark_interval %d idle_timeout %d ",
+        ngx.log(ngx.INFO, string.format("Initializing proxy manager settings: sweep_interval %d mark_interval %d idle_timeout %d ",
                                             M.sweep_interval, M.mark_interval, M.timeout))
         ngx.log(ngx.INFO, string.format("Image %s",M.image))
     else
         ngx.log(ngx.INFO, string.format("Initialized at %d, skipping", initialized))
     end
 end
+
 
 -- This function will shut down a running Narrative Docker container immediately
 -- Once that's done, the user's token is removed from the cache.
@@ -536,10 +523,6 @@ set_proxy = function(self)
     local client_ip = ngx.var.remote_addr
     local method = ngx.req.get_method()
     local new_flag = false
-    -- get the provisioning / reaper functions into the run queue if not already
-    -- the workers sometimes crash and having it here guarentees it will be running
-    check_provisioner()
-    check_marker()
     if method == "POST" then
         local response = {}
         -- POST method takes a session key and assigns a queued container to it
@@ -975,11 +958,6 @@ use_proxy = function(self)
     local target = nil
     local client_ip = ngx.var.remote_addr
 
-    -- get the provisioning / reaper functions into the run queue if not already
-    -- the workers sometimes crash and having it here guarantees it will be running
-    check_provisioner()
-    check_marker()
-
     -- get session
     -- If if fails for any reason (there are several possible) redirect to
     -- an end point which can authenticate and hopefully send them back here
@@ -1070,12 +1048,6 @@ end
 check_proxy = function(self)
     local target = nil
     local client_ip = ngx.var.remote_addr
-
-    -- get the provisioning / reaper functions into the run queue if not already
-    -- the workers sometimes crash and having it here guarantees it will be running
-    check_provisioner()
-    check_marker()
-
 
     -- TESTING start
 
@@ -1197,8 +1169,6 @@ check_proxy = function(self)
     end
 end
 
-M.check_marker = check_marker
-M.check_provisioner = check_provisioner
 M.set_proxy = set_proxy
 M.check_proxy = check_proxy
 M.use_proxy = use_proxy
