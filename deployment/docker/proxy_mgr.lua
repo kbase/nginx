@@ -368,6 +368,15 @@ provisioner = function()
     end
 end
 
+queue_provisioner = function(self)
+    local success, err = ngx.timer.at(0, provisioner)
+    if success then
+        ngx.log(ngx.INFO, "Provisioner queued to run immediately: ")
+    else
+        ngx.log(ngx.ERR, "Error enqueuing provisioner to run immediately: "..err)
+    end
+end
+
 -- This function just checks to make sure there is a provisioner function in the queue
 -- returns true if there was one, false otherwise
 check_provisioner = function(self, now)
@@ -439,6 +448,31 @@ initialize = function(self, conf)
     end
 end
 
+initialize_workers = function(self)
+
+    ngx.log(ngx.INFO, "Setting up marker, sweeper and provisioner functions")
+
+    local success, err = ngx.timer.every(M.mark_interval, marker)
+    if success then
+        ngx.log(ngx.INFO, "Set marker function to run every "..M.mark_interval.." seconds")
+    else
+        ngx.log(ngx.ERR, "Error setting marker to run every "..M.mark_interval.." seconds: "..err)
+    end
+
+    local success, err = ngx.timer.every(M.sweep_interval, sweeper)
+    if success then
+        ngx.log(ngx.INFO, "Set marker function to run every "..M.sweep_interval.." seconds")
+    else
+        ngx.log(ngx.ERR, "Error setting marker to run every "..M.sweep_interval.." seconds: "..err)
+    end
+
+    success, err = ngx.timer.every(M.provision_interval, provisioner)
+    if success then
+        ngx.log(ngx.INFO, "Set provisioner function to run every "..M.provision_interval.." seconds")
+    else
+        ngx.log(ngx.ERR, "Error setting provisioner to run every "..M.provision_interval.." seconds: "..err)
+    end
+end
 
 -- This function will shut down a running Narrative Docker container immediately
 -- Once that's done, the user's token is removed from the cache.
@@ -1175,5 +1209,6 @@ M.use_proxy = use_proxy
 M.initialize = initialize
 M.get_session = get_session
 M.narrative_shutdown = narrative_shutdown
+M.initialize_workers = initialize_workers
 
 return M

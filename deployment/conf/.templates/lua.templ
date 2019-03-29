@@ -22,24 +22,5 @@ init_by_lua_block {
 }
 
 init_worker_by_lua_block {
-        local success, err = ngx.timer.every(proxymgr.mark_interval, proxymgr.marker)
-        if success then
-            ngx.log(ngx.INFO, "Set marker function to run every "..proxymgr.mark_interval.." seconds")
-        else
-            ngx.log(ngx.ERR, "Error setting marker to run every "..proxymgr.mark_interval.." seconds: "..err)
-        end
-
-        local success, err = ngx.timer.every(proxymgr.sweep_interval, proxymgr.sweeper)
-        if success then
-            ngx.log(ngx.INFO, "Set marker function to run every "..proxymgr.sweep_interval.." seconds")
-        else
-            ngx.log(ngx.ERR, "Error setting marker to run every "..proxymgr.sweep_interval.." seconds: "..err)
-        end
-
-        success, err = ngx.timer.every(proxymgr.provision_interval, proxymgr.provisioner)
-        if success then
-            ngx.log(ngx.INFO, "Set provisioner function to run every "..proxymgr.provision_interval.." seconds")
-        else
-            ngx.log(ngx.ERR, "Error setting provisioner to run every "..proxymgr.provision_interval.." seconds: "..err)
-        end
+    proxymgr:initialize_workers()
 }
