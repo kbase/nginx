@@ -1264,6 +1264,6 @@ M.use_proxy = use_proxy
 M.initialize = initialize
 M.get_session = get_session
 M.narrative_shutdown = narrative_shutdown
-M.narrative_shutdown = narrative_shutdown_noauth
+M.narrative_shutdown_noauth = narrative_shutdown_noauth
 
 return M
