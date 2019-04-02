@@ -56,6 +56,7 @@ local provisioner
 local check_provisioner
 local initialize
 local narrative_shutdown
+local narrative_shutdown_noauth
 local set_proxy
 local check_proxy
 local url_decode
@@ -521,6 +522,64 @@ narrative_shutdown = function(self)
             ngx.status = ngx.HTTP_UNAUTHORIZED
             ngx.log(ngx.WARN, "Unauthorized user attempting to shutdown a Narrative")
             response = "Must provide user credentials to shutdown a running server!"
+        end
+        ngx.say(json.encode(response))
+    else
+        ngx.exit(ngx.HTTP_METHOD_NOT_IMPLEMENTED)
+    end
+end
+
+-- This function will shut down a running Narrative Docker container immediately
+-- Once that's done, the user's token is removed from the cache.
+-- The intent is that this is a fast, specific reaping process, accessible from outside.
+-- It's set up as a REST call, and does NOT require a valid token or session cookie
+-- This call MUST be protected by access controls to avoid allowing unauthorized people
+-- to shut down narrative containers (e.g., using nginx rules).
+-- Only the GET and DELETE methods are implemented. GET returns some info, and DELETE
+-- will shutdown the container.
+narrative_shutdown_noauth = function(self)
+    local uri_key_rx = ngx.var.uri_base.."/("..key_regex..")"
+    local method = ngx.req.get_method()
+    local response = {}
+    if method == "GET" then
+        ngx.say(json.encode(response))
+    elseif method == "DELETE" then
+        local key = string.match(ngx.var.uri, uri_key_rx)
+        if key then
+            local target = session_map:get(key)
+            if target == nil then
+                ngx.status = ngx.HTTP_NOT_FOUND
+                response = "Session does not exist: "..key
+            else
+                local dock_lock = locklib:new(M.lock_name, lock_opts)
+                local session = notemgr:split(target)
+                id = session[2]
+                -- lock docker map before read/write
+                elapsed, err = dock_lock:lock(id)
+                if elapsed then -- lock worked
+                    response = "Immediately reaping container for " ..key
+                    ngx.log(ngx.NOTICE, "Manual shutdown of "..id.." by user "..key)
+                    local ok, err = pcall(notemgr.remove_notebook, id)
+                    if ok then
+                        docker_map:delete(id)
+                        session_map:delete(key)
+                        ngx.log(ngx.INFO, "Notebook "..id.." removed")
+                    elseif string.find(err, "does not exist") then
+                        docker_map:delete(id)
+                        session_map:delete(key)
+                        ngx.log(ngx.WARN, "Notebook "..id.." nonexistent - removing references")
+                    else
+                        ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
+                        ngx.log(ngx.ERR, "Error: "..err)
+                        response = "Error: "..err
+                    end
+                    dock_lock:unlock() -- unlock if it worked
+                else
+                    ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
+                    ngx.log(ngx.ERR, "Error: "..err)
+                    response = "Error: "..err
+                end
+            end
         end
         ngx.say(json.encode(response))
     else
@@ -1205,5 +1264,6 @@ M.use_proxy = use_proxy
 M.initialize = initialize
 M.get_session = get_session
 M.narrative_shutdown = narrative_shutdown
+M.narrative_shutdown = narrative_shutdown_noauth
 
 return M
