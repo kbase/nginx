@@ -21,7 +21,7 @@ init_by_lua_block {
 	}
 }
 
-init_worker_by_lua_block {
-	ngx.log(ngx.INFO,"Queuing workers.")
-    proxymgr:initialize_workers()
-}
+# init_worker_by_lua_block {
+#	ngx.log(ngx.INFO,"Queuing workers.")
+#    proxymgr:initialize_workers()
+#}
