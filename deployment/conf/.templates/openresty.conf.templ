@@ -86,8 +86,6 @@ http {
 			''      close;
 	}
 
-	include /etc/nginx/conf.d/lua;
-
 	include /etc/nginx/sites-enabled/{{ default .Env.nginx_site_cfg "ci-narrative"}};
 
 }
