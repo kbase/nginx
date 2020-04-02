@@ -11,7 +11,7 @@ RUN cp /kb/deployment/conf/sources.list /etc/apt/sources.list && \
     apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
-        software-properties-common ca-certificates apt-transport-https curl net-tools
+        software-properties-common ca-certificates apt-transport-https curl net-tools wget
 
 RUN rm -rf /etc/nginx && \
     ln -s /usr/local/openresty/nginx/conf /etc/nginx && \
