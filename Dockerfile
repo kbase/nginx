@@ -13,39 +13,6 @@ RUN cp /kb/deployment/conf/sources.list /etc/apt/sources.list && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         software-properties-common ca-certificates apt-transport-https curl net-tools
 
-
-# Split here just to manage the layer sizes
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
-     lua5.1 luarocks liblua5.1-0 liblua5.1-0-dev liblua5.1-json liblua5.1-lpeg2 \
-     libssl-dev apt-transport-https
-
-RUN luarocks install luasocket;\
-    luarocks install luajson;\
-    luarocks install penlight;\
-    luarocks install lua-spore;\
-    luarocks install luacrypto
-
-# Copy lua code to destination
-# COPY --from=narrative /kb/dev_container/narrative/docker /kb/deployment/services/narrative/docker/
-RUN mkdir -p /kb/deployment/services/narrative && \
-    mv /kb/deployment/docker /kb/deployment/services/narrative
-
-# Install docker binaries based on
-# https://docs.docker.com/install/linux/docker-ce/debian/#install-docker-ce
-# Also add the user to the groups that map to "docker" on Linux and "daemon" on
-# MacOS
-RUN apt-get install -y apt-transport-https software-properties-common && \
-    curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add - && \
-    add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable" && \
-    apt-get update && \
-    apt-get install -y docker-ce=18.03.0~ce-0~debian && \
-    usermod -aG docker www-data && \
-    usermod -g root www-data && \
-    mkdir -p /kb/deployment/services/narrative/docker && \
-    cp /kb/deployment/services/narrative/docker/proxy_mgr.lua /kb/deployment/services/narrative/docker/proxy_mgr2.lua
-
-ADD githashes /tmp/githashes
-
 RUN rm -rf /etc/nginx && \
     ln -s /usr/local/openresty/nginx/conf /etc/nginx && \
     cd /etc/nginx && \
@@ -78,7 +45,6 @@ ENTRYPOINT [ "/kb/deployment/bin/dockerize" ]
 # be overidden by docker-compose at startup
 CMD [ "-template", "/kb/deployment/conf/.templates/openresty.conf.templ:/etc/nginx/nginx.conf", \
       "-template", "/kb/deployment/conf/.templates/minikb-narrative.templ:/etc/nginx/sites-enabled/minikb-narrative", \
-      "-template", "/kb/deployment/conf/.templates/lua.templ:/etc/nginx/conf.d/lua", \
       "-env", "/kb/deployment/conf/localhost.ini", \
       "-stdout", "/var/log/nginx/access.log", \
       "-stdout", "/var/log/nginx/error.log", \
