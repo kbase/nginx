@@ -15,7 +15,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
 RUN cd /etc/nginx && \
     mkdir /etc/nginx/ssl /etc/nginx/sites-enabled && \
     openssl req -x509 -newkey rsa:4096 -days 365 -nodes \
-       -keyout /etc/nginx/ssl/key.pem -out /etc/nginx/ssl/cert.pem 
+       -keyout /etc/nginx/ssl/key.pem -out /etc/nginx/ssl/cert.pem \
        -subj '/C=US/ST=California/L=Berkeley/O=Lawrence Berkeley National Lab/OU=KBase/CN=localhost' && \
     cd /tmp && \
 	wget -N https://github.com/kbase/dockerize/raw/master/dockerize-linux-amd64-v0.6.1.tar.gz && \
