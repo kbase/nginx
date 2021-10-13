@@ -1,4 +1,4 @@
-FROM nginx:latest
+FROM openresty/openresty:jessie
 
 # These ARGs values are passed in via the docker build command
 ARG BUILD_DATE
@@ -7,15 +7,18 @@ ARG BRANCH
 
 COPY deployment/ /kb/deployment/
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
+RUN cp /kb/deployment/conf/sources.list /etc/apt/sources.list && \
+    apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         software-properties-common ca-certificates apt-transport-https curl net-tools wget
 
-RUN cd /etc/nginx && \
-    mkdir /etc/nginx/ssl /etc/nginx/sites-enabled && \
-    openssl req -x509 -newkey rsa:4096 -days 365 -nodes \
-       -keyout /etc/nginx/ssl/key.pem -out /etc/nginx/ssl/cert.pem \
+RUN rm -rf /etc/nginx && \
+    ln -s /usr/local/openresty/nginx/conf /etc/nginx && \
+    cd /etc/nginx && \
+    mkdir ssl /var/log/nginx && \
+    mkdir /usr/local/openresty/nginx/conf/conf.d && \
+    openssl req -x509 -newkey rsa:4096 -keyout ssl/key.pem -out ssl/cert.pem -days 365 -nodes \
        -subj '/C=US/ST=California/L=Berkeley/O=Lawrence Berkeley National Lab/OU=KBase/CN=localhost' && \
     cd /tmp && \
 	wget -N https://github.com/kbase/dockerize/raw/master/dockerize-linux-amd64-v0.6.1.tar.gz && \
@@ -23,7 +26,7 @@ RUN cd /etc/nginx && \
     rm dockerize-linux-amd64-v0.6.1.tar.gz && \
 	mv dockerize /kb/deployment/bin
 
-COPY nginx-sites.d/ /etc/nginx/sites-enabled
+COPY nginx-sites.d/ /usr/local/openresty/nginx/conf/sites-enabled
 
 
 # The BUILD_DATE value seem to bust the docker cache when the timestamp changes, move to
