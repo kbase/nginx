@@ -1,4 +1,4 @@
-FROM openresty/openresty:jessie
+FROM openresty/openresty:buster
 
 # These ARGs values are passed in via the docker build command
 ARG BUILD_DATE
