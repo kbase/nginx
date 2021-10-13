@@ -7,8 +7,8 @@ ARG BRANCH
 
 COPY deployment/ /kb/deployment/
 
-RUN cp /kb/deployment/conf/sources.list /etc/apt/sources.list && \
-    apt-get update && \
+#RUN cp /kb/deployment/conf/sources.list /etc/apt/sources.list && \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         software-properties-common ca-certificates apt-transport-https curl net-tools wget
