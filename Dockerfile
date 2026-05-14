@@ -16,7 +16,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
 RUN rm -rf /etc/nginx && \
     ln -s /usr/local/openresty/nginx/conf /etc/nginx && \
     cd /etc/nginx && \
-    mkdir -p ssl /var/log/nginx sites-enabled conf.d && \
+    mkdir -p ssl sites-enabled conf.d && \
+    mkdir -p /var/log/nginx && \
     openssl req -x509 -newkey rsa:4096 -keyout ssl/key.pem -out ssl/cert.pem -days 365 -nodes \
        -subj '/C=US/ST=California/L=Berkeley/O=Lawrence Berkeley National Lab/OU=KBase/CN=localhost' && \
     cd /tmp && \
