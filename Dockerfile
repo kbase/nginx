@@ -1,5 +1,5 @@
 FROM openresty/openresty:1.29.2.3-bookworm-fat
-COPY deployment/ /kb/deployment/
+COPY deployment /kb/deployment
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -16,6 +16,7 @@ RUN rm -rf /etc/nginx && \
 	wget -N https://github.com/kbase/dockerize/raw/master/dockerize-linux-amd64-v0.6.1.tar.gz && \
 	tar xvzf dockerize-linux-amd64-v0.6.1.tar.gz && \
     rm dockerize-linux-amd64-v0.6.1.tar.gz && \
+    mkdir -kb/deployment/bin && \
 	mv dockerize /kb/deployment/bin/
 
 ENTRYPOINT [ "/kb/deployment/bin/dockerize" ]
