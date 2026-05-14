@@ -43,7 +43,6 @@ ENTRYPOINT [ "/kb/deployment/bin/dockerize" ]
 # Here are some default params passed to dockerize. They would typically
 # be overidden by docker-compose at startup
 CMD [ "-template", "/kb/deployment/conf/.templates/openresty.conf.templ:/etc/nginx/nginx.conf", \
-      "-template", "/kb/deployment/conf/.templates/minikb-narrative.templ:/etc/nginx/sites-enabled/minikb-narrative", \
       "-env", "/kb/deployment/conf/localhost.ini", \
       "-stdout", "/var/log/nginx/access.log", \
       "-stdout", "/var/log/nginx/error.log", \

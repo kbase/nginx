@@ -265,7 +265,6 @@ server {
 # Proxy	for the nginx remote api
 server {
 	listen 127.0.0.1:65000;
-	ssl off;
 
 	auth_basic_user_file /etc/nginx/htpasswd;
 	location / {

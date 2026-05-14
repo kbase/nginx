@@ -91,7 +91,6 @@ server {
 # Proxy	for the nginx remote api
 server {
     listen 127.0.0.1:65000;
-    ssl off;
 
     auth_basic_user_file /etc/nginx/htpasswd;
     location / {
@@ -137,7 +136,7 @@ server {
 # this resolver is the internal rancher resolver, define it in the http scope to ensure
 # that it is inherited in location blocks nested in the server block
 # see https://github.com/rancher/rancher/issues/7691#issuecomment-277635645
-resolver {{ default .Env.resolver "169.254.169.250" }} valid=5s ipv6=off;
+resolver 169.254.169.250 valid=5s ipv6=off;
 
 server {
     listen 443 ssl;
