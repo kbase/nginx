@@ -1,4 +1,4 @@
-FROM nginx:1.31.0
+FROM openresty/openresty:1.29.2.3-bookworm-fat
 
 # These ARGs values are passed in via the docker build command
 ARG BUILD_DATE
@@ -13,7 +13,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         ca-certificates curl net-tools wget
 
-RUN cd /etc/nginx && \
+RUN rm -rf /etc/nginx && \
+    ln -s /usr/local/openresty/nginx/conf /etc/nginx && \
+    cd /etc/nginx && \
     mkdir -p ssl /var/log/nginx sites-enabled conf.d && \
     openssl req -x509 -newkey rsa:4096 -keyout ssl/key.pem -out ssl/cert.pem -days 365 -nodes \
        -subj '/C=US/ST=California/L=Berkeley/O=Lawrence Berkeley National Lab/OU=KBase/CN=localhost' && \
@@ -23,7 +25,7 @@ RUN cd /etc/nginx && \
     rm dockerize-linux-amd64-v0.6.1.tar.gz && \
 	mv dockerize /kb/deployment/bin
 
-COPY nginx-sites.d/ /etc/nginx/sites-enabled
+COPY nginx-sites.d/ /usr/local/openresty/nginx/conf/sites-enabled
 
 
 # The BUILD_DATE value seem to bust the docker cache when the timestamp changes, move to

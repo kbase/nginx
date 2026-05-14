@@ -120,7 +120,7 @@ server {
 resolver {{ default .Env.resolver "169.254.169.250" }} valid=5s ipv6=off;
 
 server {
-    listen 443;
+    listen 443 ssl;
     server_name appdev.kbase.us localhost;
 
 
@@ -133,7 +133,6 @@ server {
     # added kkeller 30sep2015 for kbase-2777
     proxy_request_buffering off;
 
-    ssl on;
     # Letsencrypt generated certs
     ssl_certificate /etc/letsencrypt/live/appdev.kbase.us/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/appdev.kbase.us/privkey.pem;

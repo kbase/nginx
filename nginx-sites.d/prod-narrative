@@ -54,7 +54,7 @@ server {
 # HTTPS server
 #
 server {
-	listen 443;
+	listen 443 ssl;
 	server_name localhost narrative narrative.kbase.us;
 	# Setup a DNS resolver
 	# kkeller 13jul2017: should not need the rancher resolver here
@@ -62,7 +62,6 @@ server {
 # try putting the docker resolver here
 #	resolver 172.0.0.11;
 
-	ssl on;
     # Letsencrypt generated certs
     ssl_certificate /etc/letsencrypt/live/narrative.kbase.us/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/narrative.kbase.us/privkey.pem;

@@ -162,7 +162,7 @@ server {
 # limit_req_zone $1 zone=shockapi:10m rate=1r/m;
 
 server {
-        listen 443;
+        listen 443 ssl;
         server_name {{ default .Env.server_name "localhost" }}
 
         # this resolver is the internal rancher resolver
@@ -178,7 +178,6 @@ server {
         # added kkeller 30sep2015 for kbase-2777
         proxy_request_buffering off;
 
-        ssl on;
         # Letsencrypt generated certs
         ssl_certificate {{ default .Env.ssl_certificate "/kb/deployment/conf/localhost.crt" }};
         ssl_certificate_key {{ default .Env.ssl_certificate_key "/kb/deployment/conf/localhost.key" }};
@@ -295,4 +294,3 @@ server {
 
 }
 # End of https server block
-

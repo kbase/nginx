@@ -140,7 +140,7 @@ server {
 resolver {{ default .Env.resolver "169.254.169.250" }} valid=5s ipv6=off;
 
 server {
-    listen 443;
+    listen 443 ssl;
     server_name next.kbase.us localhost;
 
     # taken from next-www
@@ -152,7 +152,6 @@ server {
     # added kkeller 30sep2015 for kbase-2777
     proxy_request_buffering off;
 
-    ssl on;
     # Letsencrypt generated certs
     ssl_certificate /etc/letsencrypt/live/next.kbase.us/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/next.kbase.us/privkey.pem;
@@ -473,7 +472,6 @@ server {
     listen 443 ssl;
     server_name dockerhub-next.kbase.us;
 
-    ssl on;
     ssl_certificate /etc/letsencrypt/live/next.kbase.us/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/next.kbase.us/privkey.pem;
     ssl_session_timeout 5m;
