@@ -46,4 +46,5 @@ ENTRYPOINT [ "/kb/deployment/bin/dockerize" ]
 CMD [ "-stdout", "/var/log/nginx/access.log", \
       "-stdout", "/var/log/nginx/error.log", \
       "-template", "/kb/deployment/conf/.templates/openresty.conf.templ:/etc/nginx/nginx.conf", \
+      "-env", "/kb/deployment/conf/localhost.ini", \
        "nginx" ]
