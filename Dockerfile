@@ -11,7 +11,7 @@ RUN apt-get update && \
 
 RUN rm -rf /etc/nginx && \
     ln -s /usr/local/openresty/nginx/conf /etc/nginx && \
-    mkdir -p /etc/nginx/ssl /etc/nginx/conf.d /var/log/nginx
+    mkdir -p /etc/nginx/ssl /etc/nginx/conf.d /etc/nginx/sites-enabled /var/log/nginx
 
 RUN mkdir -p /kb/deployment/bin && \
     wget -O /tmp/dockerize.tar.gz \
