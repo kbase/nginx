@@ -16,6 +16,6 @@ RUN rm -rf /etc/nginx && \
 	wget -N https://github.com/kbase/dockerize/raw/master/dockerize-linux-amd64-v0.6.1.tar.gz && \
 	tar xvzf dockerize-linux-amd64-v0.6.1.tar.gz && \
     rm dockerize-linux-amd64-v0.6.1.tar.gz && \
-	mv dockerize /kb/deployment/bin
+	mv dockerize /kb/deployment/bin/
 
 ENTRYPOINT [ "/kb/deployment/bin/dockerize" ]
