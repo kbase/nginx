@@ -9,7 +9,7 @@ NAME := "kbase/nginx:$(BRANCH)"
 all: docker_image
 
 docker_image:
-	IMAGE_NAME=$(NAME) hooks/build
+	IMAGE_NAME=$(NAME) ./build-image.sh
 
 push_image:
 	IMAGE_NAME=$(NAME) ./push2dockerhub.sh
