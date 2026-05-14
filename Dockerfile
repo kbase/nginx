@@ -1,4 +1,4 @@
-FROM openresty/openresty:1.29.2.3-bookworm-fat
+FROM openresty/openresty:1.31.0.1-bookworm-fat
 
 # These ARGs values are passed in via the docker build command
 ARG BUILD_DATE
