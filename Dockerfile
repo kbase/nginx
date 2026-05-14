@@ -27,7 +27,6 @@ RUN rm -rf /etc/nginx && \
 	mv dockerize /kb/deployment/bin
 
 COPY deployment/conf/sites-enabled/ /usr/local/openresty/nginx/conf/sites-enabled
-COPY deployment/conf/openresty.conf /usr/local/openresty/nginx/conf/nginx.conf
 
 
 # The BUILD_DATE value seem to bust the docker cache when the timestamp changes, move to
@@ -46,4 +45,5 @@ ENTRYPOINT [ "/kb/deployment/bin/dockerize" ]
 # be overidden by docker-compose at startup
 CMD [ "-stdout", "/var/log/nginx/access.log", \
       "-stdout", "/var/log/nginx/error.log", \
+      "-template", "/kb/deployment/conf/.templates/openresty.conf.templ:/etc/nginx/nginx.conf", \
        "nginx" ]
