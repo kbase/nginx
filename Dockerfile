@@ -1,5 +1,4 @@
-FROM openresty/openresty:1.29.2.3-bookworm-fat
-
+FROM openresty/openresty:bookworm-amd64@sha256:729b91706ca8dd543f60d1d538ae64a690efb1d066c0144dbbb1745110609915
 ENV DEBIAN_FRONTEND=noninteractive
 
 COPY deployment /kb/deployment
