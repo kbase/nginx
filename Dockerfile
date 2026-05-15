@@ -1,42 +1,49 @@
-FROM openresty/openresty:bookworm-amd64@sha256:729b91706ca8dd543f60d1d538ae64a690efb1d066c0144dbbb1745110609915 AS builder
+FROM debian:bookworm-slim AS builder
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        build-essential git perl dos2unix \
+        build-essential git wget ca-certificates \
         libpcre3-dev libssl-dev zlib1g-dev && \
     rm -rf /var/lib/apt/lists/*
 
-RUN git clone https://github.com/openresty/openresty.git /tmp/openresty-src && \
-    cd /tmp/openresty-src && \
-    git checkout 4c1c9426e4ffc8a80756d87eca07e75aacb6fa4b && \
-    make && \
-    tar -xzf openresty-*.tar.gz && \
-    cd openresty-*/ && \
-    ./configure --prefix=/usr/local/openresty \
-        --with-pcre-jit \
+RUN wget https://nginx.org/download/nginx-1.31.0.tar.gz && \
+    tar -xzf nginx-1.31.0.tar.gz && \
+    git clone https://github.com/openresty/headers-more-nginx-module.git && \
+    cd headers-more-nginx-module && \
+    git checkout v0.39 && \
+    cd ../nginx-1.31.0 && \
+    ./configure \
+        --prefix=/etc/nginx \
+        --sbin-path=/usr/sbin/nginx \
+        --conf-path=/etc/nginx/nginx.conf \
+        --error-log-path=/var/log/nginx/error.log \
+        --http-log-path=/var/log/nginx/access.log \
+        --pid-path=/var/run/nginx.pid \
         --with-http_ssl_module \
-        --with-http_v2_module && \
+        --with-http_v2_module \
+        --with-http_realip_module \
+        --with-http_gzip_static_module \
+        --add-module=../headers-more-nginx-module && \
     make -j$(nproc) && \
     make install
 
 
-# The above can be removed once they release a new version
-
-FROM openresty/openresty:bookworm-amd64@sha256:729b91706ca8dd543f60d1d538ae64a690efb1d066c0144dbbb1745110609915
+FROM debian:bookworm-slim
 ENV DEBIAN_FRONTEND=noninteractive
 
-COPY --from=builder /usr/local/openresty /usr/local/openresty
+COPY --from=builder /usr/sbin/nginx /usr/sbin/nginx
+COPY --from=builder /etc/nginx /etc/nginx
 
 COPY deployment /kb/deployment
 
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends curl vim htop wget && \
+    apt-get install -y --no-install-recommends \
+        curl vim htop wget \
+        libpcre3 libssl3 zlib1g ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-RUN rm -rf /etc/nginx && \
-    ln -s /usr/local/openresty/nginx/conf /etc/nginx && \
-    mkdir -p /etc/nginx/ssl /etc/nginx/conf.d /etc/nginx/sites-enabled /var/log/nginx
+RUN mkdir -p /etc/nginx/ssl /etc/nginx/conf.d /etc/nginx/sites-enabled /var/log/nginx
 
 RUN mkdir -p /kb/deployment/bin && \
     wget -O /tmp/dockerize.tar.gz \
