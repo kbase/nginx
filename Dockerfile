@@ -16,7 +16,10 @@ RUN mkdir -p /etc/nginx/ssl /etc/nginx/conf.d /etc/nginx/sites-enabled /var/log/
     touch /var/log/nginx/access.log /var/log/nginx/error.log
 
 RUN rm -f /usr/local/openresty/nginx/conf/nginx.conf \
-          /etc/nginx/conf.d/default.conf
+          /etc/nginx/conf.d/default.conf \
+
+RUN ln -s /usr/local/openresty/nginx/conf/mime.types /etc/nginx/mime.types
+
 
 RUN mkdir -p /kb/deployment/bin && \
     wget -O /tmp/dockerize.tar.gz \
