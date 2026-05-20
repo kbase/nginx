@@ -1,9 +1,6 @@
 FROM 1.29.2.4-0-alpine-fat
 ENV DEBIAN_FRONTEND=noninteractive
 
-COPY --from=builder /usr/sbin/nginx /usr/sbin/nginx
-COPY --from=builder /etc/nginx /etc/nginx
-
 COPY deployment /kb/deployment
 
 RUN apt-get update && \
