@@ -1,14 +1,16 @@
-FROM openresty/openresty:1.29.2.4-0-alpine-fat@sha256:af355ebd6f01e580823b6718e8a2e39be3b45d9437fc92144e43ac72020f7461
+FROM openresty/openresty:1.29.2.4-alpine-slim
 ENV DEBIAN_FRONTEND=noninteractive
 
 COPY deployment /kb/deployment
 
-RUN apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends \
+RUN apk update && \
+    apk upgrade && \
+    apk add --no-cache \
         curl vim htop wget \
-        libpcre3 libssl3 zlib1g ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+        pcre openssl zlib ca-certificates bash && \
+    rm -rf /var/cache/apk/*
+
+RUN sed -i 's|/bin/ash|/bin/bash|g' /etc/passwd
 
 RUN mkdir -p /etc/nginx/ssl /etc/nginx/conf.d /etc/nginx/sites-enabled /var/log/nginx
 
