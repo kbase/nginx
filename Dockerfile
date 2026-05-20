@@ -7,10 +7,8 @@ RUN apk update && \
     apk upgrade && \
     apk add --no-cache \
         curl vim htop wget \
-        pcre openssl zlib ca-certificates bash && \
+        pcre openssl zlib ca-certificates && \
     rm -rf /var/cache/apk/*
-
-RUN sed -i 's|/bin/ash|/bin/bash|g' /etc/passwd
 
 RUN mkdir -p /etc/nginx/ssl /etc/nginx/conf.d /etc/nginx/sites-enabled /var/log/nginx && \
     touch /var/log/nginx/access.log /var/log/nginx/error.log
