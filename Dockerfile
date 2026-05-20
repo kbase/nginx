@@ -1,4 +1,4 @@
-FROM openresty/openresty:1.29.2.4-alpine-slim
+FROM openresty/openresty:1.29.2.4-alpine-fat@sha256:af355ebd6f01e580823b6718e8a2e39be3b45d9437fc92144e43ac72020f7461
 ENV DEBIAN_FRONTEND=noninteractive
 
 COPY deployment /kb/deployment
