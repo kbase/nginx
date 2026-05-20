@@ -12,7 +12,9 @@ RUN apk update && \
 
 RUN sed -i 's|/bin/ash|/bin/bash|g' /etc/passwd
 
-RUN mkdir -p /etc/nginx/ssl /etc/nginx/conf.d /etc/nginx/sites-enabled /var/log/nginx
+RUN mkdir -p /etc/nginx/ssl /etc/nginx/conf.d /etc/nginx/sites-enabled /var/log/nginx && \
+    touch /var/log/nginx/access.log /var/log/nginx/error.log
+
 
 RUN mkdir -p /kb/deployment/bin && \
     wget -O /tmp/dockerize.tar.gz \
