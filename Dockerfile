@@ -1,34 +1,4 @@
-FROM debian:bookworm-slim AS builder
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        build-essential git wget ca-certificates \
-        libpcre3-dev libssl-dev zlib1g-dev && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN wget https://nginx.org/download/nginx-1.31.0.tar.gz && \
-    tar -xzf nginx-1.31.0.tar.gz && \
-    git clone https://github.com/openresty/headers-more-nginx-module.git && \
-    cd headers-more-nginx-module && \
-    git checkout v0.39 && \
-    cd ../nginx-1.31.0 && \
-    ./configure \
-        --prefix=/etc/nginx \
-        --sbin-path=/usr/sbin/nginx \
-        --conf-path=/etc/nginx/nginx.conf \
-        --error-log-path=/var/log/nginx/error.log \
-        --http-log-path=/var/log/nginx/access.log \
-        --pid-path=/var/run/nginx.pid \
-        --with-http_ssl_module \
-        --with-http_v2_module \
-        --with-http_realip_module \
-        --with-http_gzip_static_module \
-        --add-module=../headers-more-nginx-module && \
-    make -j$(nproc) && \
-    make install
-
-
-FROM debian:bookworm-slim
+FROM 1.29.2.4-0-alpine-fat
 ENV DEBIAN_FRONTEND=noninteractive
 
 COPY --from=builder /usr/sbin/nginx /usr/sbin/nginx
