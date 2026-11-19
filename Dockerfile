@@ -1,3 +1,5 @@
+# build portion taken from https://github.com/nginx/docker-nginx/blob/master/modules/Dockerfile.alpine
+
 ARG NGINX_FROM_IMAGE=nginx:mainline-alpine
 FROM ${NGINX_FROM_IMAGE} AS builder
 
