@@ -26,48 +26,6 @@ server {
                 allow all;
         }
 
-        # Dynamic proxy manager
-        location ^~ /proxy_map {
-                default_type 'application/json';
-                allow 127.0.0.1;
-                allow 172.17.0.0/16;
-                deny all;
-
-                set $uri_base '/proxy_map';
-                content_by_lua 'proxymgr:set_proxy()';
-        }
-
-        location ^~ /narrative_shutdown {
-                allow 127.0.0.1;
-                allow 172.17.0.0/16;
-                default_type 'application/json';
-
-                set $uri_base '/proxy_map';
-                content_by_lua 'proxymgr:narrative_shutdown()';
-        }
-
-        location ^~ /narrative/ {
-                default_type 'text/plain';
-                error_page 401 /index.html;
-
-                set $target '';
-
-                access_by_lua '
-                        proxymgr:use_proxy()
-                ';
-                proxy_set_header X-Forwarded-Host $host;
-                proxy_set_header X-Real-IP $remote_addr;
-                proxy_set_header X-Forwarded-Server $host;
-                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                proxy_set_header Host $http_host;
-                proxy_set_header X-NginX-Proxy true;
-                proxy_pass http://$target;
-                proxy_redirect off;
-                proxy_http_version 1.1;
-                proxy_set_header Upgrade $http_upgrade;
-                proxy_set_header Connection "upgrade";
-                proxy_read_timeout 86400;
-        }
         location ^~ /data_source_config.json {
                 set $proxyhost narrative_version;
                 proxy_pass http://$proxyhost:80/data_source_config.json;
@@ -115,7 +73,6 @@ server {
 # Proxy for the nginx remote api
 server {
         listen 127.0.0.1:65000;
-        ssl off;
 
         auth_basic_user_file /etc/nginx/htpasswd;
         location / {
@@ -123,8 +80,7 @@ server {
                 }
 }
 
-# Proxy for globus online - non-blocking lua code doesn't handle https, so
-# we build an internal proxy to the Globus Nexus API endpoint
+# Proxy for the Globus Nexus API endpoint
 server {
         listen 127.0.0.1:65001;
 
@@ -162,7 +118,7 @@ server {
 # limit_req_zone $1 zone=shockapi:10m rate=1r/m;
 
 server {
-        listen 443;
+        listen 443 ssl;
         server_name {{ default .Env.server_name "localhost" }}
 
         # this resolver is the internal rancher resolver
@@ -178,7 +134,6 @@ server {
         # added kkeller 30sep2015 for kbase-2777
         proxy_request_buffering off;
 
-        ssl on;
         # Letsencrypt generated certs
         ssl_certificate {{ default .Env.ssl_certificate "/kb/deployment/conf/localhost.crt" }};
         ssl_certificate_key {{ default .Env.ssl_certificate_key "/kb/deployment/conf/localhost.key" }};
@@ -190,64 +145,6 @@ server {
 
         root /kb/deployment;
         index home.html home.shtml;
-
-        access_by_lua_block {
-                ngx.header["X-kbaseuser"] = proxymgr:get_session()
-                return
-        }
-
-        location ^~ /bad_request {
-                internal;
-                content_by_lua '
-                ngx.log(ngx.ERR, "badrequest")
-                ';
-
-                return 404;
-        }
-
-        location ^~ /proxy_map {
-                default_type 'application/json';
-                allow 127.0.0.1;
-                allow 172.17.0.0/16;
-                deny all;
-
-                set $uri_base '/proxy_map';
-                content_by_lua 'proxymgr:set_proxy()';
-
-        }
-        # Shutdown utility
-        location ^~ /narrative_shutdown {
-                default_type 'application/json';
-                allow 127.0.0.1;
-                allow 172.17.0.0/16;
-
-                set $uri_base '/narrative_shutdown';
-                content_by_lua 'proxymgr:narrative_shutdown()';
-
-        }
-
-        # Narrative redirect rule
-        location ^~ /narrative/ {
-                default_type 'text/plain';
-                error_page 401 /index.html;
-                set $target '';
-
-                access_by_lua '
-                                proxymgr:use_proxy()
-                ';
-                proxy_set_header X-Forwarded-Host $host;
-                proxy_set_header X-Real-IP $remote_addr;
-                proxy_set_header X-Forwarded-Server $host;
-                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                proxy_set_header Host $http_host;
-                proxy_set_header X-NginX-Proxy true;
-                proxy_pass http://$target;
-                proxy_redirect off;
-                proxy_http_version 1.1;
-                proxy_set_header Upgrade $http_upgrade;
-                proxy_set_header Connection "upgrade";
-                proxy_read_timeout 86400;
-        }
 
         location ^~ /data_source_config.json {
                 set $proxyhost narrative_version;
