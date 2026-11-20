@@ -1,6 +1,8 @@
-# build portion taken from https://github.com/nginx/docker-nginx/blob/master/modules/Dockerfile.alpine
+# syntax=docker/dockerfile:1
 
-ARG NGINX_FROM_IMAGE=nginx:mainline-alpine
+# build nginx module portion taken from https://github.com/nginx/docker-nginx/blob/master/modules/Dockerfile.alpine
+
+ARG NGINX_FROM_IMAGE=nginx:stable-alpine3.24@sha256:3bc3836dc0be3b811f238210360bf8e7ca8a2d0effdae46160bf1f3578710051
 FROM ${NGINX_FROM_IMAGE} AS builder
 
 ARG ENABLED_MODULES=headers-more
